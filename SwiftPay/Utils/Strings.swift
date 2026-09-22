@@ -20,12 +20,12 @@ enum AppStrings {
     static let lsLoginText = "Already have an account?"
     
     
-    
     // MARK: AuthView
     
     /// LoginScreenHeading
     static let asHeading = "Welcome to SwiftPay"
     static let asSubheading = "Enter your phone number to continue."
+    
     
     /// SignupScreenHeading
     static let ssHeading = "Complete your profile"
