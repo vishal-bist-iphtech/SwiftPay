@@ -10,9 +10,12 @@ import CoreData
 
 struct ContentView: View {
 
+    @StateObject private var router = AppRouter()
+
     var body: some View {
         
-            Text("SwiftPay")
+            RootView()
+            .environmentObject(router)
     }
 }
 
