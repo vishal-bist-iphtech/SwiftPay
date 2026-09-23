@@ -11,7 +11,7 @@ import Combine
 
 final class DashboardViewModel: ObservableObject {
     
-    @Published var balance: Double = 12540.80
+    @Published var balance: Double = 12345.80
     
     @Published var transactions: [Transaction] = [
         
