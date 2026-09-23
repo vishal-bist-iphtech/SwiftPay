@@ -10,6 +10,9 @@ import SwiftUI
 struct TransferView: View {
     
     @State private var transferAmount: String = ""
+    @State private var showSuccess = false
+    @State private var isProcessing = false
+    @State private var sentAmount = ""
     
     // integer cap
     let intCap: Int = 7
@@ -68,24 +71,38 @@ struct TransferView: View {
                     // MARK: Custom NumPad
                     Numpad(amount: $transferAmount)
                     
+                    
                     // MARK: Send Button
                     Button {
-                        
+                        sendButtonTapped()
                     } label: {
-                        Text("Send Money")
-                            .font(.title2)
-                            .fontWeight(.medium)
-                            .foregroundStyle(
-                                Color("background")
-                            )
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 30)
-                            .padding()
-                            .background(.white)
-                            .clipShape(
-                                RoundedRectangle(cornerRadius: 22)
-                            )
+                        ZStack {
+                            
+                            Text("Send Money")
+                                .font(.title2)
+                                .fontWeight(.medium)
+                                .foregroundStyle(
+                                    Color("background")
+                                )
+                                .opacity(isProcessing ? 0 : 1)
+                                
+                            if isProcessing {
+                                ProgressView()
+                                    .progressViewStyle(.circular)
+                                    .tint(
+                                        Color("background")
+                                    )
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 30)
+                        .padding()
+                        .background(.white)
+                        .clipShape(
+                            RoundedRectangle(cornerRadius: 22)
+                        )
                     }
+                    .disabled(!isAmountValid || isProcessing)
                     .padding(.top, 15)
                 }
                 .padding(.top, 15)
@@ -95,6 +112,11 @@ struct TransferView: View {
         }
         .navigationTitle("Transfer money")
         .navigationBarTitleDisplayMode(.inline)
+        .fullScreenCover(isPresented: $showSuccess) {
+            TransferSuccessView(amount: sentAmount) {
+                showSuccess = false
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -104,6 +126,22 @@ struct TransferView: View {
                 }
                 .padding(4)
             }
+        }
+    }
+
+
+    // send button tapped
+    private func sendButtonTapped() {
+        
+        guard !isProcessing else {return}
+        
+        isProcessing = true
+        
+        // simulating the API call
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
+            sentAmount = transferAmount
+            isProcessing = false
+            showSuccess = true
         }
     }
 
@@ -150,6 +188,19 @@ struct TransferView: View {
             
             return filtered
         }
+    }
+    
+    private var isAmountValid: Bool {
+        
+        guard let value = Double(transferAmount) else {return false}
+        
+    /*
+         "0" → 0.0 > 0 is false
+         "0.00" → 0.0 > 0 is false
+         "0." → Double("0.") is nil
+         And true for any non-zero amount like "0.01", "5", "12.50"
+     */
+        return value > 0
     }
 }
 
