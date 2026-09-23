@@ -13,7 +13,9 @@ final class AppRouter: ObservableObject {
     enum Screen {
         case splash
         case landing
-        case auth
+        case login
+        case signup
+        case main
     }
     
     @Published var screen: Screen = .splash

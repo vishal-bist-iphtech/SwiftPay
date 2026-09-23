@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import CoreData
 
 struct RootView: View {
     
@@ -15,16 +16,33 @@ struct RootView: View {
         
         Group {
             
+            // AppRouter switch
             switch router.screen {
                 
             case .splash:
                 SplashScreenView()
             case .landing:
                 LandingScreenView()
-            case .auth:
-                AuthView()
+            case .login:
+                LoginView()
+            case .signup:
+                SignupView()
+            case .main:
+                DashboardView()
             }
         }
         .preferredColorScheme(.dark)
     }
+}
+
+#Preview {
+    RootView()
+        .environmentObject(AppRouter())
+        .environmentObject(AppSession())
+        .environmentObject(AuthViewModel(context: PersistenceController.preview.container.viewContext))
+        .environmentObject(DashboardViewModel())
+        .environment(
+            \.managedObjectContext,
+            PersistenceController.preview.container.viewContext
+        )
 }

@@ -15,8 +15,11 @@ struct LandingScreenView: View {
         
         ZStack {
             
-            Color("background")
-                .ignoresSafeArea()
+            LinearGradient(
+                colors: [Color.orange, Color("red").opacity(0.5), Color("background").opacity(0.7), Color("background"),Color("surface")],
+                startPoint: .topTrailing, endPoint: .bottomLeading
+            )
+             .ignoresSafeArea()
             
             ScrollView(showsIndicators: false) {
                 
@@ -46,10 +49,7 @@ struct LandingScreenView: View {
                         .font(.system(size: 44, weight: .bold))
                         .foregroundStyle(Color("accentColor"))
                     
-                    Text(
-                        "Track spending, manage your budget, "
-                        + "and understand your finances in one place."
-                    )
+                    Text(AppStrings.lsSubheading)
                     .font(.title3)
                     .fontWeight(.medium)
                     .foregroundStyle(Color("secondaryText"))
@@ -66,7 +66,7 @@ struct LandingScreenView: View {
                     Spacer(minLength: 40)
                     
                     Button {
-                        router.screen = .auth
+                        router.screen = .login
                     } label: {
                         
                         Text("Get Started")
@@ -81,7 +81,7 @@ struct LandingScreenView: View {
                     }
                     
                     Button {
-                        router.screen = .auth
+                        router.screen = .login
                     } label: {
                         
                         Text("Already have an account?")
@@ -103,4 +103,5 @@ struct LandingScreenView: View {
 
 #Preview {
     LandingScreenView()
+        .environmentObject(AppRouter())
 }

@@ -27,7 +27,7 @@ struct SplashScreenView: View {
                     .foregroundStyle(Color("accentColor"))
                     .scaleEffect(scale)
                 
-                Text("SwiftPay")
+                Text(AppStrings.appName)
                     .font(.system(size: 34, weight: .bold))
                     .foregroundStyle(Color("primaryText"))
                 
@@ -51,4 +51,9 @@ struct SplashScreenView: View {
             }
         }
     }
+}
+
+#Preview {
+    SplashScreenView()
+        .environmentObject(AppRouter())
 }
