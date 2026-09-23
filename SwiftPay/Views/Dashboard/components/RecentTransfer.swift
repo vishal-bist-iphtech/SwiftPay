@@ -18,8 +18,9 @@ struct RecentTransfer: View {
             
             Group {
                 
-                if name == "Add" {
-                    Image(systemName: "plus")
+                if name == "More" {
+                    Image(systemName: icon)
+                        .font(.title)
                         .frame(width: 70, height: 70)
                         .clipShape(Circle())
                         .glassEffect().opacity(0.8)
@@ -30,6 +31,7 @@ struct RecentTransfer: View {
                     Image("demo_profile_image")
                         .resizable()
                         .scaledToFill()
+                        .font(.largeTitle)
                         .background(
                             Color("surface")
                         )
@@ -39,7 +41,6 @@ struct RecentTransfer: View {
                 }
                 
             }
-            .font(.largeTitle)
             .foregroundStyle(
                 Color(.white)
             )
