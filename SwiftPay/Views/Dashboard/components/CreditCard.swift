@@ -137,7 +137,7 @@ struct CreditCard: View {
     }
 
     // Gradient background
-    private var cardBackground: some View {
+    var cardBackground: some View {
         ZStack {
             LinearGradient(
                 colors: [

@@ -105,10 +105,14 @@ struct DashboardView: View {
                             icon: "arrow.up.right"
                         )
                         
-                        QuickAction(
-                            title: "More",
-                            icon: "square.grid.2x2"
-                        )
+                        NavigationLink {
+                            SpendingView()
+                        } label:{
+                            QuickAction(
+                                title: "More",
+                                icon: "square.grid.2x2"
+                            )
+                        }
                     }
                         
                     // MARK: Contacts
@@ -137,7 +141,8 @@ struct DashboardView: View {
                         
                         RecentTransfer(
                             name: "Emma",
-                            icon: "person.fill"
+                            icon: "person.fill",
+                            
                         )
                         
                         RecentTransfer(
