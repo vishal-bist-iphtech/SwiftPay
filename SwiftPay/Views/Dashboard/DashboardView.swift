@@ -35,7 +35,7 @@ struct DashboardView: View {
                             NavigationLink {
                                 ProfileView()
                             } label: {
-                                Image("demo_profile_image")
+                                Image("demo_image1")
                                     .resizable()
                                     .scaledToFill()
                                     .font(.system(size: 50))
@@ -47,9 +47,6 @@ struct DashboardView: View {
                                         Color("surface")
                                     )
                                     .clipShape(Circle())
-                                    .overlay(
-                                        Circle().stroke(Color("mutedText"), lineWidth: 1)
-                                    )
                             }
                             .buttonStyle(.plain)
                             
@@ -142,27 +139,32 @@ struct DashboardView: View {
                         RecentTransfer(
                             name: "Emma",
                             icon: "person.fill",
+                            image: "demo_image6"
                             
                         )
                         
                         RecentTransfer(
                             name: "James",
-                            icon: "person.fill"
+                            icon: "person.fill",
+                            image: "demo_image7"
                         )
                         
                         RecentTransfer(
                             name: "Olivia",
-                            icon: "person.fill"
+                            icon: "person.fill",
+                            image: "demo_image8"
                         )
                         
                         RecentTransfer(
-                            name: "Olivia",
-                            icon: "person.fill"
+                            name: "Jenny",
+                            icon: "person.fill",
+                            image: "demo_image5"
                         )
                         
                         RecentTransfer(
                             name: "Add",
-                            icon: "plus"
+                            icon: "plus",
+                            image: "demo_image2"
                         )
                     }
                     .padding(.top, 10)
