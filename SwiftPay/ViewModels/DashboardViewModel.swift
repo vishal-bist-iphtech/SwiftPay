@@ -45,7 +45,6 @@ final class DashboardViewModel: ObservableObject {
 
     /// Loads balance + transactions + contacts for `user`.
     /// Empty state when user is nil
-    @MainActor
     func load(for user: UserEntity?) {
         guard let user else {
             balance = 0

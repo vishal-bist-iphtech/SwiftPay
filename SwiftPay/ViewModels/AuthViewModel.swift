@@ -107,11 +107,10 @@ final class AuthViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Navigation intents (keep routing side effects out of Views)
+    // MARK: - Navigation
 
-    /// Login button intent: validates, then routes to main (existing user)
-    /// or signup (new phone). Views call this single method.
-    @MainActor
+    /// Login button: validates, then routes to main (existing user)
+    /// or signup (new phone).
     func handleLoginTapped(session: AppSession, router: AppRouter) {
         guard let result = login() else { return }
         switch result {
@@ -123,16 +122,14 @@ final class AuthViewModel: ObservableObject {
         }
     }
 
-    /// Signup button intent: creates the account, logs in, routes to main.
-    @MainActor
+    /// Signup button: creates the account, logs in, routes to main.
     func handleSignupTapped(session: AppSession, router: AppRouter) {
         guard let user = signup() else { return }
         session.login(user: user)
         router.screen = .main
     }
 
-    /// Logout intent: clears persisted session, resets form state, routes out.
-    @MainActor
+    /// Logout: clears persisted session, resets form state, routes out.
     func handleLogout(session: AppSession, router: AppRouter) {
         session.logout()
         reset()
