@@ -32,7 +32,8 @@ struct ProfileView: View {
                     // MARK: Header
                     HStack {
                         Text("Profile")
-                            .font(.title2.bold())
+                            .font(.title3)
+                            .fontWeight(.medium)
                             .foregroundStyle(Color("primaryText"))
                     }
                     .padding(.top, 8)

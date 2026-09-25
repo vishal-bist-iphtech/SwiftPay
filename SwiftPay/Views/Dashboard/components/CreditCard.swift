@@ -210,7 +210,7 @@ struct CreditCard: View {
     }
 }
 
-private struct CardMark: View {
+struct CardMark: View {
 
     var diameter: CGFloat = 22
 

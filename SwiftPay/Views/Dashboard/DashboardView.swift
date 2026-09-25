@@ -100,11 +100,15 @@ struct DashboardView: View {
                             icon: "plus"
                         )
                         
-                        QuickAction(
-                            title: "Transfer",
-                            icon: "arrow.up.right"
-                        )
-                        
+                        NavigationLink {
+                            TransferView()
+                        } label: {
+                            QuickAction(
+                                title: "Transfer",
+                                icon: "arrow.up.right"
+                            )
+                        }
+                                               
                         QuickAction(
                             title: "More",
                             icon: "square.grid.2x2"
@@ -112,7 +116,6 @@ struct DashboardView: View {
                     }
                         
                     // MARK: Contacts
-                    
                     HStack {
                         
                         Text("Quick Transfer")
@@ -123,13 +126,6 @@ struct DashboardView: View {
                             )
                         
                         Spacer()
-                        
-                        Text("View all")
-                            .font(.headline)
-                            .fontWeight(.medium)
-                            .foregroundStyle(
-                                Color("mutedText")
-                            )
                     }
                     .padding(.top, 20)
                     
@@ -151,13 +147,13 @@ struct DashboardView: View {
                         )
                         
                         RecentTransfer(
-                            name: "Olivia",
+                            name: "Nathan",
                             icon: "person.fill"
                         )
                         
                         RecentTransfer(
-                            name: "Add",
-                            icon: "plus"
+                            name: "More",
+                            icon: "chevron.down"
                         )
                     }
                     .padding(.top, 10)
@@ -176,7 +172,7 @@ struct DashboardView: View {
                         
                         Spacer()
                         
-                        Text("View all")
+                        Text("See all")
                             .font(.headline)
                             .fontWeight(.medium)
                             .foregroundStyle(
