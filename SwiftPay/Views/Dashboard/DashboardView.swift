@@ -113,7 +113,6 @@ struct DashboardView: View {
                     }
                         
                     // MARK: Contacts
-                    
                     HStack {
                         
                         Text("Quick Transfer")
@@ -124,13 +123,6 @@ struct DashboardView: View {
                             )
                         
                         Spacer()
-                        
-                        Text("View all")
-                            .font(.headline)
-                            .fontWeight(.medium)
-                            .foregroundStyle(
-                                Color("mutedText")
-                            )
                     }
                     .padding(.top, 20)
                     
@@ -183,7 +175,7 @@ struct DashboardView: View {
                         
                         Spacer()
                         
-                        Text("View all")
+                        Text("See all")
                             .font(.headline)
                             .fontWeight(.medium)
                             .foregroundStyle(
