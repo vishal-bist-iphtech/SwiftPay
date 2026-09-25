@@ -15,7 +15,7 @@ struct CreditCard: View {
     var balance: Double = 1234
     var currencyCode: String = "USD"
     
-    let bank: String = "xyz bank"
+    let bank: String = "State Bank of India"
     let accountNumber = "123456789123456"
 
     var body: some View {
@@ -94,10 +94,7 @@ struct CreditCard: View {
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 7)
-                    .background(
-                        Color("surface").opacity(0.28)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .glassEffect(.clear, in: .rect(cornerRadius: 12))
 
                     Spacer()
 
