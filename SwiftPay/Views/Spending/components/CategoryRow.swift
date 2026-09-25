@@ -9,7 +9,7 @@ import SwiftUI
 
 struct CategoryRow: View {
 
-    let category: SpendingCategory
+    let category: TransactionCategory
 
     var body: some View {
         HStack(spacing: 14) {
@@ -45,7 +45,7 @@ struct CategoryRow: View {
 
             Spacer()
 
-            Text("- \(category.total.formatted(.currency(code: "USD")))")
+            Text("- \(category.totalAmount.formatted(.currency(code: "USD")))")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(Color("primaryText"))
         }

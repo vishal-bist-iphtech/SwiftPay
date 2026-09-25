@@ -40,7 +40,6 @@ struct CompactCard: View {
             }
         }
         .padding(.horizontal, 18)
-        .padding(.vertical, 16)
         .frame(maxWidth: .infinity)
         .frame(height: 120)
         .background(cardBackground)
