@@ -54,7 +54,9 @@ enum CategoryPriceFilter: String, CaseIterable, Identifiable {
 
 final class SpendingViewModel: ObservableObject {
 
-    @Published var monthLabel: String = "Sep, 2026"
+    
+    @Published var selectedMonth: Int
+    @Published var selectedYear: Int
     @Published var totalSpent: Double = 12_345.67
 
     /// All transactions for the month, grouped by day, sorted left -> right.
@@ -83,7 +85,43 @@ final class SpendingViewModel: ObservableObject {
         days.first { $0.transactions.contains(where: \.isMonthMax) }?.day
     }
 
+    // MARK: - Month picker (current year only, no future months)
+
+    /// Current calendar month/year — upper bound for selection.
+    var currentMonth: Int {
+        Calendar.current.component(.month, from: Date())
+    }
+
+    var currentYear: Int {
+        Calendar.current.component(.year, from: Date())
+    }
+
+    /// Displayed in the month picker button, e.g. "Sep, 2026".
+    var monthLabel: String {
+        let comps = DateComponents(year: selectedYear, month: selectedMonth, day: 1)
+        guard let date = Calendar.current.date(from: comps) else { return "" }
+        let fmt = DateFormatter()
+        fmt.dateFormat = "MMM, yyyy"
+        return fmt.string(from: date)
+    }
+
+    /// Only months of the current year.
+    func isMonthSelectable(_ month: Int) -> Bool {
+        month >= 1 && month <= 12 && month <= currentMonth
+    }
+
+    /// Selects a month, ignores future months.
+    func selectMonth(_ month: Int) {
+        guard isMonthSelectable(month) else { return }
+        selectedMonth = month
+        selectedYear = currentYear
+    }
+
     init() {
+        let now = Date()
+        let cal = Calendar.current
+        self.selectedMonth = cal.component(.month, from: now)
+        self.selectedYear = cal.component(.year, from: now)
         loadMock()
     }
 
