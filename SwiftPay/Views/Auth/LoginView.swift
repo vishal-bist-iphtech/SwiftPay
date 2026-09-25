@@ -88,20 +88,8 @@ struct LoginView: View {
                     
                     Button {
                         
-                        guard let result = viewModel.login()
-                        else {return}
-                        
-                        switch result {
-                            
-                        case .login(let user):
-                            session.login(user: user)
-                            router.screen = .main
-                            
-                        case .signup:
-                            // phone number passed inside the viewModel.phone
-                            router.screen = .signup
-                            
-                        }
+                        // Single VM intent — validation + routing live in AuthViewModel.
+                        viewModel.handleLoginTapped(session: session, router: router)
                         
                     } label: {
                             

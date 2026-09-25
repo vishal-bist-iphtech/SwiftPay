@@ -44,14 +44,13 @@ final class AuthViewModel: ObservableObject {
         }
     }
     
-    func login() -> AuthFlow? {
-        
+    func login() -> AuthFlow? {        
         errorMessage = nil
         
         let phone = normalizedPhone
         
         guard phone.count == 10 else {
-            errorMessage = "Enter a valid phone number"
+            errorMessage = AppStrings.authInvalidPhoneNumber
             return nil
         }
         
@@ -75,18 +74,18 @@ final class AuthViewModel: ObservableObject {
         email = email.trimmingCharacters(in: .whitespacesAndNewlines)
         
         guard !name.isEmpty else {
-            errorMessage = "Please Enter Your Name"
+            errorMessage = AppStrings.authNameRequired
             return nil
         }
         
         guard isValidName(name) else {
-            errorMessage = "Please Enter Valid Name"
+            errorMessage = AppStrings.authNameInvalid
             return nil
         }
         
         guard isValidEmail(email) else {
             
-            errorMessage = "Please Enter Valid Email Address"
+            errorMessage = AppStrings.authEmailInvalid
             return nil
         }
         
@@ -102,10 +101,42 @@ final class AuthViewModel: ObservableObject {
             
         } catch {
             
-            errorMessage = "Error while creating account.\n\(error.localizedDescription)"
+            errorMessage = "\(AppStrings.authCreateAccountFailed)\n\(error.localizedDescription)"
             
             return nil
         }
+    }
+
+    // MARK: - Navigation intents (keep routing side effects out of Views)
+
+    /// Login button intent: validates, then routes to main (existing user)
+    /// or signup (new phone). Views call this single method.
+    @MainActor
+    func handleLoginTapped(session: AppSession, router: AppRouter) {
+        guard let result = login() else { return }
+        switch result {
+        case .login(let user):
+            session.login(user: user)
+            router.screen = .main
+        case .signup:
+            router.screen = .signup
+        }
+    }
+
+    /// Signup button intent: creates the account, logs in, routes to main.
+    @MainActor
+    func handleSignupTapped(session: AppSession, router: AppRouter) {
+        guard let user = signup() else { return }
+        session.login(user: user)
+        router.screen = .main
+    }
+
+    /// Logout intent: clears persisted session, resets form state, routes out.
+    @MainActor
+    func handleLogout(session: AppSession, router: AppRouter) {
+        session.logout()
+        reset()
+        router.screen = .landing
     }
     
     private func isValidEmail(_ email: String) -> Bool {
