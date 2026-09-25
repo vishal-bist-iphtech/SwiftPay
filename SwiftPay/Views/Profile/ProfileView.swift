@@ -215,9 +215,8 @@ struct ProfileView: View {
     }
 
     private func logout() {
-        session.logout()
-        authVM.reset()
-        router.screen = .landing
+        // Single VM intent — session clear + form reset + routing live in AuthViewModel.
+        authVM.handleLogout(session: session, router: router)
     }
 }
 

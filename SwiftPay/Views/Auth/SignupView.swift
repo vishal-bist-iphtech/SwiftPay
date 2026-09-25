@@ -105,12 +105,8 @@ struct SignupView: View {
                     // MARK: Create Button
                     Button {
                         
-                        guard let user = viewModel.signup()
-                        else {return}
-                        
-                        session.login(user: user)
-                        
-                        router.screen = .main
+                        // Single VM intent — creation + login + routing live in AuthViewModel.
+                        viewModel.handleSignupTapped(session: session, router: router)
                         
                     } label: {
                         

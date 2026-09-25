@@ -13,10 +13,11 @@ struct ContentView: View {
     @StateObject private var router = AppRouter()
     @StateObject private var session = AppSession()
     @StateObject private var authVM: AuthViewModel
-    @StateObject private var dashboardVM = DashboardViewModel()
+    @StateObject private var dashboardVM: DashboardViewModel
 
     init(context: NSManagedObjectContext = PersistenceController.shared.container.viewContext) {
         _authVM = StateObject(wrappedValue: AuthViewModel(context: context))
+        _dashboardVM = StateObject(wrappedValue: DashboardViewModel(context: context))
     }
 
     var body: some View {
@@ -26,6 +27,9 @@ struct ContentView: View {
             .environmentObject(session)
             .environmentObject(authVM)
             .environmentObject(dashboardVM)
+            .onAppear {
+                dashboardVM.observe(session: session)
+            }
     }
 }
 

@@ -36,11 +36,13 @@ struct RootView: View {
 }
 
 #Preview {
+    
+    let context = PersistenceController.preview.container.viewContext
     RootView()
         .environmentObject(AppRouter())
         .environmentObject(AppSession())
         .environmentObject(AuthViewModel(context: PersistenceController.preview.container.viewContext))
-        .environmentObject(DashboardViewModel())
+        .environmentObject(DashboardViewModel(context: context))
         .environment(
             \.managedObjectContext,
             PersistenceController.preview.container.viewContext

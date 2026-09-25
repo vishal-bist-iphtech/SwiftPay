@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import CoreData
 
 struct DashboardView: View {
         
@@ -85,7 +86,11 @@ struct DashboardView: View {
                         
                         // MARK: Credit card
                         
-                        CreditCard()
+                        CreditCard(
+                            balance: viewModel.balance,
+                            bank: viewModel.bankName,
+                            maskedNumber: viewModel.maskedAccountNumber
+                        )
                         
                     }
                     
@@ -131,32 +136,39 @@ struct DashboardView: View {
                     
                     HStack(spacing: 4) {
                         
-                        RecentTransfer(
-                            name: "Emma",
-                            icon: "person.fill"
-                        )
-                        
-                        RecentTransfer(
-                            name: "James",
-                            icon: "person.fill"
-                        )
-                        
-                        RecentTransfer(
-                            name: "Olivia",
-                            icon: "person.fill"
-                        )
-                        
-                        RecentTransfer(
-                            name: "Nathan",
-                            icon: "person.fill"
-                        )
-                        
-                        RecentTransfer(
-                            name: "More",
-                            icon: "chevron.down"
-                        )
+                        if viewModel.hasContacts {
+                            ForEach(viewModel.contacts.prefix(4)) { contact in
+                                RecentTransfer(
+                                    name: contact.name,
+                                    icon: "person.fill"
+                                )
+                            }
+                            
+                            RecentTransfer(
+                                name: "More",
+                                icon: "chevron.down"
+                            )
+                        } else {
+                            // Empty state — keeps layout height stable.
+                            VStack(spacing: 4) {
+                                Image(systemName: "person.crop.circle.badge.plus")
+                                    .font(.title)
+                                    .foregroundStyle(Color("mutedText"))
+                                    .frame(width: 70, height: 70)
+                                    .background(Color("surface"))
+                                    .clipShape(Circle())
+                                
+                                Text(AppStrings.emptyStateNoContacts)
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundStyle(Color("mutedText"))
+                            }
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.vertical, 4)
+                        }
                     }
                     .padding(.top, 10)
+                    .animation(.easeInOut(duration: 0.2), value: viewModel.hasContacts)
                     
                     
                     // MARK: Transactions
@@ -183,14 +195,37 @@ struct DashboardView: View {
                     
                     VStack(spacing: 12) {
                         
-                        ForEach(viewModel.transactions) { transaction in
-                            
-                            TransactionRow(
-                                transaction: transaction
-                            )
+                        if viewModel.hasTransactions {
+                            ForEach(viewModel.transactions) { transaction in
+                                
+                                TransactionRow(
+                                    transaction: transaction
+                                )
+                            }
+                        } else {
+                            // Empty state with icon + hint instead of a bare label.
+                            VStack(spacing: 8) {
+                                Image(systemName: "tray")
+                                    .font(.title)
+                                    .foregroundStyle(Color("mutedText"))
+                                
+                                Text(AppStrings.emptyStateNoTransactions)
+                                    .font(.headline)
+                                    .fontWeight(.medium)
+                                    .foregroundStyle(Color("primaryText"))
+                                
+                                Text(AppStrings.emptyStateNoTransactionsHint)
+                                    .font(.subheadline)
+                                    .foregroundStyle(Color("mutedText"))
+                            }
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.vertical, 20)
+                            .background(Color("surface").opacity(0.5))
+                            .clipShape(RoundedRectangle(cornerRadius: 18))
                         }
                     }
                     .padding(.top, 4)
+                    .animation(.easeInOut(duration: 0.2), value: viewModel.hasTransactions)
                 }
                 .padding(.horizontal, 20)
             }
@@ -200,7 +235,10 @@ struct DashboardView: View {
 }
 
 #Preview {
+    
+    let context = PersistenceController.preview.container.viewContext
+    
     DashboardView()
         .environmentObject(AppSession())
-        .environmentObject(DashboardViewModel())
+        .environmentObject(DashboardViewModel(context: context))
 }
