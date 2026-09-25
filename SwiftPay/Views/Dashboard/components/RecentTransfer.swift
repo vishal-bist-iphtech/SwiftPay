@@ -11,6 +11,7 @@ struct RecentTransfer: View {
     
     let name: String
     let icon: String
+    let image: String
     
     var body: some View {
         
@@ -28,7 +29,7 @@ struct RecentTransfer: View {
                         
                     
                 } else {
-                    Image("demo_profile_image")
+                    Image(image)
                         .resizable()
                         .scaledToFill()
                         .font(.largeTitle)
