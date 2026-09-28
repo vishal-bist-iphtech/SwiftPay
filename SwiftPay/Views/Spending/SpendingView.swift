@@ -211,8 +211,9 @@ private struct MonthPickerSheet: View {
 #Preview {
     let context = PersistenceController.preview.container.viewContext
     let session = AppSession()
+    let store = AccountStore(context: context, session: session)
     return NavigationStack {
         SpendingView()
-            .environmentObject(SpendingViewModel(context: context, session: session))
+            .environmentObject(SpendingViewModel(store: store))
     }
 }

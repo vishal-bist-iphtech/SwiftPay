@@ -111,11 +111,12 @@ struct Analytics: View {
 #Preview {
     let context = PersistenceController.preview.container.viewContext
     let session = AppSession()
+    let store = AccountStore(context: context, session: session)
     return ZStack {
         Color("background").ignoresSafeArea()
         VStack {
             Spacer()
-            Analytics(viewModel: SpendingViewModel(context: context, session: session))
+            Analytics(viewModel: SpendingViewModel(store: store))
         }
         .ignoresSafeArea(edges: .bottom)
     }

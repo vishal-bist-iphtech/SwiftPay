@@ -30,8 +30,28 @@ enum AppStrings {
     /// SignupScreenHeading
     static let ssHeading = "Complete your profile"
     static let ssSubheading = "Add few more details to complete account set-up."
+    static let noName = "Please Enter Your Name"
+    static let validName = "Please Enter Valid Name"
+    static let validEmail = "Please Enter Valid Email Address"
+    static let validPhone = "Enter a valid phone number"
+    static let notLoggedIn = "No user found. Please log-in again"
     
     
     /// confimation message
     static let logoutMessage = "Are you sure you want to logout?"
+    
+    // MARK: Add Account Screen
+    static let aaHeading = "Connect your money"
+    static let aaSubheading = "Add an account to see your full financial picture in one place"
+    static let validAcc = "Enter a valid account number (min 12 digits)"
+    static let noBank = "Please select your bank"
+    static let noAccName = "Enter the account holder name"
+    static let last4digits = "Enter the last 4 digits of your card"
+    static let validCVV = "Enter a valid CVV"
+    static let cardNtw = "Please select your card network"
+    
+    // MARK: Transfer Screen
+    static let noAccount = "No account found. Please add an account first."
+    static let insufficientBal = "Insufficient Balance"
+    static let noRecipient = "Please select a recipient"
 }

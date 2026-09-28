@@ -6,9 +6,8 @@
 //
 
 import SwiftUI
-import CoreData // Preview environment only; all Core Data work lives in the ViewModel.
+import CoreData
 
-/// Transfer screen. All state lives in `TransferViewModel`.
 struct TransferView: View {
 
     @EnvironmentObject var viewModel: TransferViewModel
@@ -70,19 +69,19 @@ struct TransferView: View {
 
                     // MARK: Balance / validation messages
                     if !viewModel.hasAccount {
-                        Text("No account found. Please add an account first.")
+                        Text(AppStrings.noAccount)
                             .font(.subheadline)
                             .fontWeight(.medium)
                             .foregroundStyle(Color("accentColor"))
                     } else if viewModel.exceedsBalance {
-                        Text("Insufficient balance.")
+                        Text(AppStrings.insufficientBal)
                             .font(.subheadline)
                             .fontWeight(.medium)
                             .foregroundStyle(Color("accentColor"))
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 20)
-                    } else if let transferError = viewModel.transferError {
-                        Text(transferError)
+                    } else if let errorMessage = viewModel.errorMessage {
+                        Text(errorMessage)
                             .font(.subheadline)
                             .fontWeight(.medium)
                             .foregroundStyle(Color("accentColor"))
@@ -174,8 +173,9 @@ struct TransferView: View {
 #Preview {
     let context = PersistenceController.preview.container.viewContext
     let session = AppSession()
+    let store = AccountStore(context: context, session: session)
     return NavigationStack {
         TransferView()
-            .environmentObject(TransferViewModel(context: context, session: session))
+            .environmentObject(TransferViewModel(store: store, session: session))
     }
 }

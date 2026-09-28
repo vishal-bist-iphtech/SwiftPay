@@ -59,36 +59,3 @@ struct LabelField: View {
         }
     }
 }
-
-
-struct AuthButton: View {
-    
-    let title: String
-    let selected: Bool
-    let action: () -> Void
-    
-    var body: some View {
-        
-        Button(action: action) {
-            
-            Text(title)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(
-                    selected
-                    ? Color("primaryText")
-                    : Color("secondaryText")
-                )
-                .frame(maxWidth: .infinity)
-                .frame(height: 44)
-                .background(
-                    selected
-                    ? Color("accentColor")
-                    : Color.clear
-                )
-                .clipShape(
-                    RoundedRectangle(cornerRadius: 12)
-                )
-        }
-    }
-}
-

@@ -237,10 +237,11 @@ struct DashboardView: View {
 #Preview {
     let context = PersistenceController.preview.container.viewContext
     let session = AppSession()
+    let store = AccountStore(context: context, session: session)
     return DashboardView()
         .environmentObject(session)
-        .environmentObject(DashboardViewModel(context: context, session: session))
-        .environmentObject(TransferViewModel(context: context, session: session))
+        .environmentObject(DashboardViewModel(store: store))
+        .environmentObject(TransferViewModel(store: store, session: session))
         .environment(
             \.managedObjectContext,
             context

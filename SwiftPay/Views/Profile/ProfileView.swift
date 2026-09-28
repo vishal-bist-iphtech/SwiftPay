@@ -41,15 +41,13 @@ struct ProfileView: View {
                     // MARK: User card
                     HStack(spacing: 14) {
 
-                        Image("demo_profile_image")
+                        Image("demo_image1")
                             .resizable()
                             .scaledToFill()
                             .frame(width: 64, height: 64)
                             .background(Color("surface"))
                             .clipShape(Circle())
-                            .overlay(
-                                Circle().stroke(Color("mutedText"), lineWidth: 1)
-                            )
+                            
 
                         VStack(alignment: .leading, spacing: 4) {
                             Text(session.currentUser?.name ?? "SwiftPay User")

@@ -47,11 +47,11 @@ struct AddAccountView: View {
 
                 VStack(alignment: .leading, spacing: 0) {
 
-                    Text("Connect your money")
+                    Text(AppStrings.aaHeading)
                         .font(.system(size: 26, weight: .bold))
                         .foregroundStyle(Color("primaryText"))
 
-                    Text("Add an account to see your full financial picture in one place.")
+                    Text(AppStrings.aaSubheading)
                         .font(.system(size: 13))
                         .foregroundStyle(Color("secondaryText"))
                         .padding(.vertical, 6)
@@ -179,15 +179,6 @@ struct AddAccountView: View {
                 }
             }
             .sharedBackgroundVisibility(.hidden)
-
-            // Dismisses the keyboard from any text field.
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("Done") {
-                    focusedField = nil
-                }
-                .font(.system(size: 15, weight: .semibold))
-            }
         }
     }
 
@@ -199,23 +190,23 @@ struct AddAccountView: View {
 
     private func validationError() -> String? {
         let numberDigits = accountNumber.filter(\.isNumber)
-        if numberDigits.count < 8 {
-            return "Enter a valid account number (min 8 digits)."
+        if numberDigits.count < 12 {
+            return AppStrings.validAcc
         }
         if bank.isEmpty {
-            return "Please select your bank."
+            return AppStrings.noBank
         }
         if accountName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "Enter the account holder name."
+            return AppStrings.noAccName
         }
         if lastFour.filter(\.isNumber).count != 4 {
-            return "Enter the last 4 digits of your card."
+            return AppStrings.last4digits
         }
         if cvvNumber.filter(\.isNumber).count < 3 {
-            return "Enter a valid CVV."
+            return AppStrings.validCVV
         }
         if cardNetwork.isEmpty {
-            return "Please select your card network."
+            return AppStrings.cardNtw
         }
         return nil
     }
@@ -231,7 +222,7 @@ struct AddAccountView: View {
         }
 
         guard let currentUser = session.currentUser else {
-            errorMessage = "No logged-in user. Please log in again."
+            errorMessage = AppStrings.notLoggedIn
             return
         }
 

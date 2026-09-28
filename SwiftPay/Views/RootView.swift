@@ -38,13 +38,14 @@ struct RootView: View {
 #Preview {
     let context = PersistenceController.preview.container.viewContext
     let session = AppSession()
+    let store = AccountStore(context: context, session: session)
     return RootView()
         .environmentObject(AppRouter())
         .environmentObject(session)
         .environmentObject(AuthViewModel(context: context))
-        .environmentObject(DashboardViewModel(context: context, session: session))
-        .environmentObject(TransferViewModel(context: context, session: session))
-        .environmentObject(SpendingViewModel(context: context, session: session))
+        .environmentObject(DashboardViewModel(store: store))
+        .environmentObject(TransferViewModel(store: store, session: session))
+        .environmentObject(SpendingViewModel(store: store))
         .environment(
             \.managedObjectContext,
             context
