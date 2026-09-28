@@ -44,8 +44,7 @@ final class AuthViewModel: ObservableObject {
         }
     }
     
-    func login() -> AuthFlow? {
-        
+    func login() -> AuthFlow? {        
         errorMessage = nil
         
         let phone = normalizedPhone
@@ -104,10 +103,39 @@ final class AuthViewModel: ObservableObject {
             
         } catch {
             
-            errorMessage = "Error while creating account.\n\(error.localizedDescription)"
+            errorMessage = "\(AppStrings.authCreateAccountFailed)\n\(error.localizedDescription)"
             
             return nil
         }
+    }
+
+    // MARK: - Navigation
+
+    /// Login button: validates, then routes to main (existing user)
+    /// or signup (new phone).
+    func handleLoginTapped(session: AppSession, router: AppRouter) {
+        guard let result = login() else { return }
+        switch result {
+        case .login(let user):
+            session.login(user: user)
+            router.screen = .main
+        case .signup:
+            router.screen = .signup
+        }
+    }
+
+    /// Signup button: creates the account, logs in, routes to main.
+    func handleSignupTapped(session: AppSession, router: AppRouter) {
+        guard let user = signup() else { return }
+        session.login(user: user)
+        router.screen = .main
+    }
+
+    /// Logout: clears persisted session, resets form state, routes out.
+    func handleLogout(session: AppSession, router: AppRouter) {
+        session.logout()
+        reset()
+        router.screen = .landing
     }
     
     private func isValidEmail(_ email: String) -> Bool {

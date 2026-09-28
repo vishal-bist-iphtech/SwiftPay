@@ -6,10 +6,13 @@
 //
 
 import SwiftUI
+import CoreData
 
 struct SplashScreenView: View {
     
     @EnvironmentObject var router: AppRouter
+    @EnvironmentObject var session: AppSession
+    @Environment(\.managedObjectContext) private var viewContext
     
     @State private var scale: CGFloat = 0.8
     @State private var opacity: Double = 0.0
@@ -46,8 +49,10 @@ struct SplashScreenView: View {
             
             try? await Task.sleep(for: .seconds(1.6))
             
+            // Cold start: restore persisted login. Logged-in users skip landing.
+            let restored = await session.restore(context: viewContext)
             withAnimation(.easeInOut(duration: 0.45)) {
-                router.screen = .landing
+                router.screen = restored ? .main : .landing
             }
         }
     }
@@ -56,4 +61,9 @@ struct SplashScreenView: View {
 #Preview {
     SplashScreenView()
         .environmentObject(AppRouter())
+        .environmentObject(AppSession())
+        .environment(
+            \.managedObjectContext,
+            PersistenceController.preview.container.viewContext
+        )
 }

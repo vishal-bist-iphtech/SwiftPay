@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import CoreData // Preview environment only; all Core Data work lives in the ViewModels.
+import CoreData
 
 struct DashboardView: View {
 
@@ -84,7 +84,7 @@ struct DashboardView: View {
                         
                         Spacer(minLength: 20)
                         
-                        // MARK: Credit card (ViewModel owns the Core Data values)
+                        // MARK: Credit card
 
                         CreditCard(
                             balance: viewModel.primaryBalance,
@@ -112,7 +112,7 @@ struct DashboardView: View {
                             )
                         }
 
-                        // transfer money (fresh transfer, no preselected recipient)
+                        // transfer money
                         Button {
                             transferVM.startNewTransfer()
                             showTransfer = true
@@ -178,6 +178,7 @@ struct DashboardView: View {
                         .buttonStyle(.plain)
                     }
                     .padding(.top, 10)
+                    .animation(.easeInOut(duration: 0.2), value: viewModel.hasContacts)
                     
                     
                     // MARK: Transactions
@@ -203,23 +204,38 @@ struct DashboardView: View {
                     .padding(.top, 20)
                     
                     VStack(spacing: 12) {
-
-                        if viewModel.transactions.isEmpty {
-                            Text("No transactions yet.")
-                                .font(.subheadline)
-                                .foregroundStyle(Color("secondaryText"))
-                                .frame(maxWidth: .infinity, alignment: .center)
-                                .padding(.vertical, 12)
-                        } else {
+                        
+                        if viewModel.hasTransactions {
                             ForEach(viewModel.transactions) { transaction in
-
+                                
                                 TransactionRow(
                                     transaction: transaction
                                 )
                             }
+                        } else {
+                            // Empty state with icon + hint
+                            VStack(spacing: 8) {
+                                Image(systemName: "tray")
+                                    .font(.title)
+                                    .foregroundStyle(Color("mutedText"))
+                                
+                                Text(AppStrings.emptyStateNoTransactions)
+                                    .font(.headline)
+                                    .fontWeight(.medium)
+                                    .foregroundStyle(Color("primaryText"))
+                                
+                                Text(AppStrings.emptyStateNoTransactionsHint)
+                                    .font(.subheadline)
+                                    .foregroundStyle(Color("mutedText"))
+                            }
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.vertical, 20)
+                            .background(Color("surface").opacity(0.5))
+                            .clipShape(RoundedRectangle(cornerRadius: 18))
                         }
                     }
                     .padding(.top, 4)
+                    .animation(.easeInOut(duration: 0.2), value: viewModel.hasTransactions)
                 }
                 .padding(.horizontal, 20)
             }

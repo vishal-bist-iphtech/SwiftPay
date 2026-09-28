@@ -11,8 +11,8 @@ import SwiftUI
 struct CreditCard: View {
     
     @State private var isBalanceVisible: Bool = false
-    
-    var balance: Double = 1234
+
+    var balance: Double = 0
     var currencyCode: String = "USD"
     
     var bank: String = "State Bank of India"
@@ -84,8 +84,8 @@ struct CreditCard: View {
                     
                     // Bank name
                     HStack(spacing: 6) {
-                        
-                        Text(bank)
+
+                        Text(bank.isEmpty ? AppStrings.emptyStateNoAccount : bank)
                             .font(.headline)
                             .fontWeight(.semibold)
                             .foregroundStyle(.white)
@@ -106,7 +106,7 @@ struct CreditCard: View {
                         
                         CardMark(diameter: 22)
                         
-                        Text(maskedNumber ?? maskedAccountNumber(accountNumber))
+                        Text(maskedNumber.isEmpty ? "credit/debit card" : maskedNumber)
                             .font(.subheadline)
                             .fontWeight(.medium)
                             .tracking(0.5)
@@ -221,7 +221,7 @@ struct CardMark: View {
     ZStack {
         Color(red: 0.07, green: 0.07, blue: 0.08)
             .ignoresSafeArea()
-        CreditCard()
+        CreditCard(balance: 1234, bank: "xyz bank", maskedNumber: "••••• 3456")
             .padding(.horizontal, 20)
     }
 }
