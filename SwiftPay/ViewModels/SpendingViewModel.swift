@@ -7,6 +7,14 @@
 
 import Foundation
 import Combine
+import CoreData
+
+/// Card data for the Spending carousel (value types only).
+struct SpendingAccountCard: Identifiable, Hashable {
+    let id: String
+    let balance: Double
+    let maskedNumber: String
+}
 
 // One bar = one transaction.
 struct MonthlyTransaction: Identifiable {
@@ -58,6 +66,13 @@ final class SpendingViewModel: ObservableObject {
     @Published var selectedMonth: Int
     @Published var selectedYear: Int
     @Published var totalSpent: Double = 12_345.67
+
+    /// Account cards for the carousel.
+    @Published var accountCards: [SpendingAccountCard] = []
+
+    private let context: NSManagedObjectContext
+    private let session: AppSession
+    private var cancellables = Set<AnyCancellable>()
 
     /// All transactions for the month, grouped by day, sorted left -> right.
     @Published var days: [DayGroup] = []
@@ -117,12 +132,65 @@ final class SpendingViewModel: ObservableObject {
         selectedYear = currentYear
     }
 
-    init() {
+    init(context: NSManagedObjectContext, session: AppSession) {
+        self.context = context
+        self.session = session
+
         let now = Date()
         let cal = Calendar.current
         self.selectedMonth = cal.component(.month, from: now)
         self.selectedYear = cal.component(.year, from: now)
+
+        loadAccounts()
         loadMock()
+
+        // Stay in sync with login/logout without any View involvement.
+        session.$currentUser
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.loadAccounts()
+            }
+            .store(in: &cancellables)
+    }
+
+    /// Reloads the account cards for the current session user.
+    func refresh() {
+        loadAccounts()
+    }
+
+    // MARK: - Accounts
+
+    private func loadAccounts() {
+        guard let user = session.currentUser,
+              let resolved = try? context.existingObject(with: user.objectID) as? UserEntity
+        else {
+            accountCards = []
+            return
+        }
+
+        let request = NSFetchRequest<AccountEntity>(entityName: "AccountEntity")
+        request.predicate = NSPredicate(format: "owner == %@", resolved)
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \AccountEntity.createdAt, ascending: false)]
+
+        do {
+            accountCards = try context.fetch(request).map { account in
+                let masked: String
+                if let stored = account.maskedNumber, !stored.isEmpty {
+                    masked = stored
+                } else if let number = account.accountNumber, !number.isEmpty {
+                    masked = AccountFormatting.maskedAccountNumber(number)
+                } else {
+                    masked = "••••• ••••"
+                }
+                return SpendingAccountCard(
+                    id: account.objectID.uriRepresentation().absoluteString,
+                    balance: (account.balance as NSDecimalNumber?)?.doubleValue ?? 0,
+                    maskedNumber: masked
+                )
+            }
+        } catch {
+            print("Failed to load accounts:", error.localizedDescription)
+        }
     }
 
     // MARK: - Mock data
