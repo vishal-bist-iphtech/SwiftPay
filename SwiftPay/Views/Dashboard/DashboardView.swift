@@ -6,11 +6,15 @@
 //
 
 import SwiftUI
+import CoreData // Preview environment only; all Core Data work lives in the ViewModels.
 
 struct DashboardView: View {
-        
+
     @EnvironmentObject var session: AppSession
     @EnvironmentObject var viewModel: DashboardViewModel
+    @EnvironmentObject var transferVM: TransferViewModel
+
+    @State private var showTransfer = false
     
     var body: some View {
         
@@ -42,7 +46,7 @@ struct DashboardView: View {
                                     .foregroundStyle(
                                         Color("primaryText")
                                     )
-                                    .frame(width: 70, height: 70)
+                                    .frame(width: 60, height: 60)
                                     .background(
                                         Color("surface")
                                     )
@@ -50,7 +54,7 @@ struct DashboardView: View {
                             }
                             .buttonStyle(.plain)
                             
-                            VStack(alignment: .leading, spacing: 4) {
+                            VStack(alignment: .leading, spacing: 2) {
                                 Text("Welcome, \(session.currentUser?.name ?? "user")")
                                     .font(.title2.bold())
                                     .foregroundStyle(
@@ -67,11 +71,11 @@ struct DashboardView: View {
                                 
                             } label: {
                                 Image(systemName: "bell.fill")
-                                    .font(.title)
+                                    .font(.title2)
                                     .foregroundStyle(
                                         Color("primaryText")
                                     )
-                                    .frame(width: 50, height: 50)
+                                    .frame(width: 40, height: 40)
                                     .padding(3)
                                     .glassEffect(in: .circle)
                                     .clipShape(Circle())
@@ -80,9 +84,15 @@ struct DashboardView: View {
                         
                         Spacer(minLength: 20)
                         
-                        // MARK: Credit card
-                        
-                        CreditCard()
+                        // MARK: Credit card (ViewModel owns the Core Data values)
+
+                        CreditCard(
+                            balance: viewModel.primaryBalance,
+                            currencyCode: viewModel.primaryCurrencyCode,
+                            bank: viewModel.primaryBankName,
+                            accountNumber: "",
+                            maskedNumber: viewModel.primaryMaskedNumber
+                        )
                         
                     }
                     
@@ -91,17 +101,30 @@ struct DashboardView: View {
                         
                     // MARK: Quick Actions
                     HStack(spacing: 12) {
+
+                        // add account
+                        NavigationLink {
+                            AddAccountView()
+                        } label: {
+                            QuickAction(
+                                title: "Add account",
+                                icon: "plus"
+                            )
+                        }
+
+                        // transfer money (fresh transfer, no preselected recipient)
+                        Button {
+                            transferVM.startNewTransfer()
+                            showTransfer = true
+                        } label: {
+                            QuickAction(
+                                title: "Transfer",
+                                icon: "arrow.up.right"
+                            )
+                        }
+                        .buttonStyle(.plain)
                         
-                        QuickAction(
-                            title: "Add account",
-                            icon: "plus"
-                        )
-                        
-                        QuickAction(
-                            title: "Transfer",
-                            icon: "arrow.up.right"
-                        )
-                        
+                        // spending
                         NavigationLink {
                             SpendingView()
                         } label:{
@@ -127,37 +150,32 @@ struct DashboardView: View {
                     .padding(.top, 20)
                     
                     HStack(spacing: 4) {
-                        
-                        RecentTransfer(
-                            name: "Emma",
-                            icon: "person.fill",
-                            image: "demo_image6"
-                            
-                        )
-                        
-                        RecentTransfer(
-                            name: "James",
-                            icon: "person.fill",
-                            image: "demo_image7"
-                        )
-                        
-                        RecentTransfer(
-                            name: "Olivia",
-                            icon: "person.fill",
-                            image: "demo_image8"
-                        )
-                        
-                        RecentTransfer(
-                            name: "Jenny",
-                            icon: "person.fill",
-                            image: "demo_image5"
-                        )
-                        
-                        RecentTransfer(
-                            name: "Add",
-                            icon: "plus",
-                            image: "demo_image2"
-                        )
+
+                        ForEach(Contact.all) { contact in
+                            Button {
+                                transferVM.startNewTransfer(recipient: contact)
+                                showTransfer = true
+                            } label: {
+                                RecentTransfer(
+                                    name: contact.name,
+                                    icon: "person.fill",
+                                    image: contact.imageName
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+
+                        Button {
+                            transferVM.startNewTransfer()
+                            showTransfer = true
+                        } label: {
+                            RecentTransfer(
+                                name: "More",
+                                icon: "plus",
+                                image: "plus"
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
                     .padding(.top, 10)
                     
@@ -185,12 +203,20 @@ struct DashboardView: View {
                     .padding(.top, 20)
                     
                     VStack(spacing: 12) {
-                        
-                        ForEach(viewModel.transactions) { transaction in
-                            
-                            TransactionRow(
-                                transaction: transaction
-                            )
+
+                        if viewModel.transactions.isEmpty {
+                            Text("No transactions yet.")
+                                .font(.subheadline)
+                                .foregroundStyle(Color("secondaryText"))
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding(.vertical, 12)
+                        } else {
+                            ForEach(viewModel.transactions) { transaction in
+
+                                TransactionRow(
+                                    transaction: transaction
+                                )
+                            }
                         }
                     }
                     .padding(.top, 4)
@@ -198,12 +224,25 @@ struct DashboardView: View {
                 .padding(.horizontal, 20)
             }
             .preferredColorScheme(.dark)
+            .onAppear {
+                viewModel.refresh()
+            }
+            .navigationDestination(isPresented: $showTransfer) {
+                TransferView()
+            }
         }
     }
 }
 
 #Preview {
-    DashboardView()
-        .environmentObject(AppSession())
-        .environmentObject(DashboardViewModel())
+    let context = PersistenceController.preview.container.viewContext
+    let session = AppSession()
+    return DashboardView()
+        .environmentObject(session)
+        .environmentObject(DashboardViewModel(context: context, session: session))
+        .environmentObject(TransferViewModel(context: context, session: session))
+        .environment(
+            \.managedObjectContext,
+            context
+        )
 }
