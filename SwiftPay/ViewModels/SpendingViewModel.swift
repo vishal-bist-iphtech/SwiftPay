@@ -9,7 +9,7 @@ import Foundation
 import Combine
 import CoreData
 
-/// Card data for the Spending carousel (value types only).
+/// Card data for the Spending carousel.
 struct SpendingAccountCard: Identifiable, Hashable {
     let id: String
     let balance: Double
