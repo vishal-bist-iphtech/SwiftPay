@@ -6,43 +6,46 @@
 //
 
 import SwiftUI
+import CoreData // Preview environment only; all Core Data work lives in the ViewModel.
 
+/// Transfer screen. All state lives in `TransferViewModel`.
 struct TransferView: View {
-    
-    @State private var transferAmount: String = ""
-    @State private var showSuccess = false
-    @State private var isProcessing = false
-    @State private var sentAmount = ""
-    
-    // integer cap
-    let intCap: Int = 7
-    // fraction cap
-    let fraCap: Int = 2
-    
+
+    @EnvironmentObject var viewModel: TransferViewModel
+
     var body: some View {
-        
+
         ZStack {
-            
+
             LinearGradient(
                 colors: [Color.orange, Color("background").opacity(0.7), Color("background"),Color("surface")],
                 startPoint: .topTrailing, endPoint: .bottomLeading
             )
              .ignoresSafeArea()
-            
+
             ScrollView(showsIndicators: false) {
-                
+
                 VStack(spacing: 8) {
-                    
+
                     // MARK: From & To cards
-                    TransferCard()
-                    
+                    TransferCard(
+                        bankName: viewModel.bankName,
+                        maskedNumber: viewModel.maskedNumber,
+                        balance: viewModel.balance,
+                        currencyCode: viewModel.currencyCode,
+                        recipient: viewModel.selectedRecipient,
+                        onSelectRecipient: {
+                            viewModel.showingContactPicker = true
+                        }
+                    )
+
                     // MARK: Transfer amount
                     HStack(alignment: .firstTextBaseline, spacing: 2) {
                         Text("$")
                             .font(.system(size: 30, weight: .semibold, design: .rounded))
                             .foregroundStyle(Color("secondaryText").opacity(0.7))
 
-                        if transferAmount.isEmpty {
+                        if viewModel.transferAmount.isEmpty {
                             Text("0.00")
                                 .font(.system(size: 50, design: .rounded))
                                 .fontWeight(.semibold)
@@ -51,9 +54,9 @@ struct TransferView: View {
                                         .opacity(0.7)
                                 )
                         }
-                        
-                        Text(transferAmount)
-                            
+
+                        Text(viewModel.transferAmount)
+
                             .font(.system(size: 50, design: .rounded))
                             .fontWeight(.semibold)
                             .foregroundStyle(Color("primaryText"))
@@ -61,32 +64,54 @@ struct TransferView: View {
                             .focusable(false)
                             .lineLimit(1)
                             .fixedSize(horizontal: true, vertical: false)
-                            .onChange(of: transferAmount) { _, newValue in
-                                transferAmount = sanitizedAmount(newValue)
-                            }
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
                     .frame(height: 110)
 
+                    // MARK: Balance / validation messages
+                    if !viewModel.hasAccount {
+                        Text("No account found. Please add an account first.")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(Color("accentColor"))
+                    } else if viewModel.exceedsBalance {
+                        Text("Insufficient balance.")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(Color("accentColor"))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 20)
+                    } else if let transferError = viewModel.transferError {
+                        Text(transferError)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(Color("accentColor"))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 20)
+                    }
+
                     // MARK: Custom NumPad
-                    Numpad(amount: $transferAmount)
-                    
-                    
+                    Numpad(amount: Binding(
+                        get: { viewModel.transferAmount },
+                        set: { viewModel.updateAmount($0) }
+                    ))
+
+
                     // MARK: Send Button
                     Button {
-                        sendButtonTapped()
+                        viewModel.send()
                     } label: {
                         ZStack {
-                            
+
                             Text("Send Money")
                                 .font(.title2)
                                 .fontWeight(.medium)
                                 .foregroundStyle(
                                     Color("background")
                                 )
-                                .opacity(isProcessing ? 0 : 1)
-                                
-                            if isProcessing {
+                                .opacity(viewModel.isProcessing ? 0 : 1)
+
+                            if viewModel.isProcessing {
                                 ProgressView()
                                     .progressViewStyle(.circular)
                                     .tint(
@@ -102,25 +127,40 @@ struct TransferView: View {
                             RoundedRectangle(cornerRadius: 22)
                         )
                     }
-                    .disabled(!isAmountValid || isProcessing)
+                    .disabled(!viewModel.isAmountValid || viewModel.isProcessing)
                     .padding(.top, 15)
                 }
                 .padding(.top, 15)
                 .padding(.horizontal, 15)
             }
-                
+
         }
         .navigationTitle("Transfer money")
         .navigationBarTitleDisplayMode(.inline)
-        .fullScreenCover(isPresented: $showSuccess) {
-            TransferSuccessView(amount: sentAmount) {
-                showSuccess = false
+        .onAppear {
+            viewModel.refresh()
+        }
+        .fullScreenCover(isPresented: $viewModel.showSuccess) {
+            TransferSuccessView(
+                amount: viewModel.sentAmount,
+                recipientName: viewModel.selectedRecipient?.name
+            ) {
+                viewModel.showSuccess = false
             }
+        }
+        .sheet(isPresented: $viewModel.showingContactPicker) {
+            ContactPickerSheet(
+                contacts: Contact.all,
+                selected: viewModel.selectedRecipient,
+                onSelect: { viewModel.selectRecipient($0) }
+            )
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    
+
                 } label: {
                     Image(systemName: "clock.arrow.trianglehead.counterclockwise.rotate.90")
                 }
@@ -128,83 +168,14 @@ struct TransferView: View {
             }
         }
     }
-
-
-    // send button tapped
-    private func sendButtonTapped() {
-        
-        guard !isProcessing else {return}
-        
-        isProcessing = true
-        
-        // simulating the API call
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
-            sentAmount = transferAmount
-            isProcessing = false
-            showSuccess = true
-        }
-    }
-
-    // Input amount sanitization to a valid amount format.
-    private func sanitizedAmount(_ value: String) -> String {
-        
-        // filter out anything other than digits or dot(.)
-        var filtered = value.filter { "0123456789".contains($0) || $0 == "." }
-
-        // Split the string in parts removing empty space btw/around separator.
-        let parts = filtered.split(separator: ".", omittingEmptySubsequences: false)
-        
-        // if there are more than one dot, then join the rest without any dot after the first dot.
-        if parts.count > 2 {
-            filtered = String(parts[0]) + "." + parts[1...].joined()
-        }
-
-        if filtered.contains(".") {
-            
-            let amnt = filtered.split(separator: ".", omittingEmptySubsequences: false)
-            
-            // integer part of input amount
-            var intPart = String(amnt[0])
-            // fraction part of input amount
-            var fracPart = amnt.count > 1 ? String(amnt[1]) : ""
-            
-            // integer part capped at 7 digits
-            if intPart.count > intCap { intPart = String(intPart.prefix(intCap)) }
-            // fraction part capped at 2 digits
-            if fracPart.count > fraCap { fracPart = String(fracPart.prefix(fraCap)) }
-            
-            // Preserve trailing dot while typing ("12." stays "12.").
-            if amnt.count > 1 && fracPart.isEmpty && filtered.hasSuffix(".") {
-                return intPart + "."
-            }
-            
-            return intPart + "." + fracPart
-            
-        } else {
-            // if there's no dot(.) then cap the integer at 7 digits
-            if filtered.count > intCap {
-                filtered = String(filtered.prefix(intCap))
-            }
-            
-            return filtered
-        }
-    }
-    
-    private var isAmountValid: Bool {
-        
-        guard let value = Double(transferAmount) else {return false}
-        
-    /*
-         "0" → 0.0 > 0 is false
-         "0.00" → 0.0 > 0 is false
-         "0." → Double("0.") is nil
-         And true for any non-zero amount like "0.01", "5", "12.50"
-     */
-        return value > 0
-    }
 }
 
 
 #Preview {
-    TransferView()
+    let context = PersistenceController.preview.container.viewContext
+    let session = AppSession()
+    return NavigationStack {
+        TransferView()
+            .environmentObject(TransferViewModel(context: context, session: session))
+    }
 }

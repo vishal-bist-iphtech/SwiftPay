@@ -9,6 +9,7 @@ import SwiftUI
 struct TransferSuccessView: View {
 
     let amount: String
+    var recipientName: String? = nil
     var onFinished: () -> Void = {}
 
     @State private var ringExpand = false
@@ -86,7 +87,7 @@ struct TransferSuccessView: View {
                             .foregroundStyle(.white)
                     }
 
-                    Text("to Olivia Carter")
+                    Text(recipientName.map { "to \($0)" } ?? "Payment complete")
                         .font(.subheadline)
                         .fontWeight(.bold)
                         .foregroundStyle(.white.opacity(0.7))
