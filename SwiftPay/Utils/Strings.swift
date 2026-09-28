@@ -34,4 +34,21 @@ enum AppStrings {
     
     /// confimation message
     static let logoutMessage = "Are you sure you want to logout?"
+
+    // MARK: Auth errors
+
+    static let authInvalidPhoneNumber = "Enter a valid phone number"
+    static let authNameRequired = "Please Enter Your Name"
+    static let authNameInvalid = "Please Enter Valid Name"
+    static let authEmailInvalid = "Please Enter Valid Email Address"
+    static let authCreateAccountFailed = "Error while creating account."
+    
+    
+    // MARK: Empty state
+    
+    static let emptyStateNoTransactions = "No transactions yet"
+    static let emptyStateNoTransactionsHint = "Your recent activity will appear here."
+    static let emptyStateNoContacts = "No contact added"
+    static let emptyStateNoContactsHint = "Add a contact to send money fast."
+    static let emptyStateNoAccount = "Link your account"
 }
