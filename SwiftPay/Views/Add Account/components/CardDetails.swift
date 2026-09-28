@@ -29,7 +29,7 @@ struct CardDetails: View {
                     .foregroundStyle(Color.green.opacity(0.9))
             }
 
-            AddAccountFieldLabel("Last four digits", size: 12)
+           FieldLabel("Last four digits", size: 12)
                 .padding(.top, 14)
 
             HStack(spacing: 6) {
@@ -60,7 +60,7 @@ struct CardDetails: View {
 
             HStack(spacing: 10) {
                 VStack(alignment: .leading, spacing: 0) {
-                    AddAccountFieldLabel("CVV Number", size: 12)
+                   FieldLabel("CVV Number", size: 12)
                     TextField("", text: $cvvNumber, prompt: Text("eg, 365").foregroundStyle(Color("mutedText")))
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(Color("primaryText"))
@@ -85,8 +85,8 @@ struct CardDetails: View {
                 .frame(maxWidth: .infinity)
 
                 VStack(alignment: .leading, spacing: 0) {
-                    AddAccountFieldLabel("Card network", size: 12)
-                    AddAccountDropdownField(value: cardNetwork, placeholder: "Select card", height: 48, fontSize: 14) {
+                    FieldLabel("Card network", size: 12)
+                    DropdownField(value: cardNetwork, placeholder: "Select card", height: 48, fontSize: 14) {
                         ForEach(cardNetworks, id: \.self) { item in
                             Button(item) { cardNetwork = item }
                         }
