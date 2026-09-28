@@ -9,6 +9,10 @@ import SwiftUI
 
 struct CompactCard: View {
 
+    /// Core Data values — single source of truth (no hardcodes).
+    var balance: Double = 0
+    var maskedNumber: String = "••••• ••••"
+
     var body: some View {
         VStack(alignment: .leading, spacing: 30) {
 
@@ -19,9 +23,10 @@ struct CompactCard: View {
 
                 Spacer(minLength: 5)
 
-                Text(maskedAccountNumber("123456789123456"))
+                Text(maskedNumber)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.9))
+                    .lineLimit(1)
             }
 
             HStack(alignment: .firstTextBaseline, spacing: 5) {
@@ -30,9 +35,11 @@ struct CompactCard: View {
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.85))
 
-                Text(balanceFormatting(1234, currencyCode: false))
+                Text(balanceFormatting(balance, currencyCode: false))
                     .font(.system(size: 26, weight: .bold))
                     .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
 
                 Spacer(minLength: 5)
 
@@ -122,37 +129,30 @@ struct CompactCard: View {
         )
     }
     
-    // account number masking
+    // account number masking (shared — also used for Core Data AccountEntity.maskedNumber)
     private func maskedAccountNumber(_ accountNumber: String, visibleDigits: Int = 4) -> String {
-        let digitsOnly = accountNumber.filter { $0.isNumber }
-        
-        guard digitsOnly.count > visibleDigits else {
-            return digitsOnly
-        }
-        
-        let lastDigits = digitsOnly.suffix(visibleDigits)
-        return "••••• \(lastDigits)"
+        AccountFormatting.maskedAccountNumber(accountNumber, visibleDigits: visibleDigits)
     }
 }
 
-private struct CardMark: View {
-
-    var diameter: CGFloat = 22
-
-    var body: some View {
-
-        HStack(spacing: -(diameter * 0.45)) {
-
-            Circle()
-                .fill(Color(red: 0.92, green: 0.12, blue: 0.16))
-                .frame(width: diameter, height: diameter)
-
-            Circle()
-                .fill(Color(red: 1.0, green: 0.62, blue: 0.15).opacity(0.9))
-                .frame(width: diameter, height: diameter)
-        }
-    }
-}
+//private struct CardMark: View {
+//
+//    var diameter: CGFloat = 22
+//
+//    var body: some View {
+//
+//        HStack(spacing: -(diameter * 0.45)) {
+//
+//            Circle()
+//                .fill(Color(red: 0.92, green: 0.12, blue: 0.16))
+//                .frame(width: diameter, height: diameter)
+//
+//            Circle()
+//                .fill(Color(red: 1.0, green: 0.62, blue: 0.15).opacity(0.9))
+//                .frame(width: diameter, height: diameter)
+//        }
+//    }
+//}
 
 
 #Preview {

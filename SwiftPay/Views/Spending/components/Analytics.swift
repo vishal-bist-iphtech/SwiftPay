@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import CoreData // Preview environment only; all Core Data work lives in the ViewModels.
 
 
 struct Analytics: View {
@@ -108,11 +109,13 @@ struct Analytics: View {
 
 
 #Preview {
-    ZStack {
+    let context = PersistenceController.preview.container.viewContext
+    let session = AppSession()
+    return ZStack {
         Color("background").ignoresSafeArea()
         VStack {
             Spacer()
-            Analytics(viewModel: SpendingViewModel())
+            Analytics(viewModel: SpendingViewModel(context: context, session: session))
         }
         .ignoresSafeArea(edges: .bottom)
     }
