@@ -36,7 +36,7 @@ struct DashboardView: View {
                             NavigationLink {
                                 ProfileView()
                             } label: {
-                                Image("demo_profile_image")
+                                Image("demo_image1")
                                     .resizable()
                                     .scaledToFill()
                                     .font(.system(size: 50))
@@ -48,9 +48,6 @@ struct DashboardView: View {
                                         Color("surface")
                                     )
                                     .clipShape(Circle())
-                                    .overlay(
-                                        Circle().stroke(Color("mutedText"), lineWidth: 1)
-                                    )
                             }
                             .buttonStyle(.plain)
                             
@@ -105,19 +102,19 @@ struct DashboardView: View {
                             icon: "plus"
                         )
                         
+                        QuickAction(
+                            title: "Transfer",
+                            icon: "arrow.up.right"
+                        )
+                        
                         NavigationLink {
-                            TransferView()
-                        } label: {
+                            SpendingView()
+                        } label:{
                             QuickAction(
-                                title: "Transfer",
-                                icon: "arrow.up.right"
+                                title: "More",
+                                icon: "square.grid.2x2"
                             )
                         }
-                                               
-                        QuickAction(
-                            title: "More",
-                            icon: "square.grid.2x2"
-                        )
                     }
                         
                     // MARK: Contacts
