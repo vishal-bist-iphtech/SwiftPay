@@ -24,42 +24,35 @@ final class DashboardViewModel: ObservableObject {
 
     @Published var transactions: [Transaction] = []
 
-    private let context: NSManagedObjectContext
-    private let session: AppSession
+    private let store: AccountStore
     private var cancellables = Set<AnyCancellable>()
 
-    init(context: NSManagedObjectContext, session: AppSession) {
-        self.context = context
-        self.session = session
+    init(store: AccountStore) {
+        self.store = store
 
-        loadPrimaryAccount()
-        loadTransactions()
+        mapAccounts(store.accounts)
+        mapTransactions(store.transactions)
 
-        // Stay in sync with login/logout without any View involvement.
-        session.$currentUser
+        store.$accounts
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.loadPrimaryAccount()
-                self?.loadTransactions()
-            }
+            .sink { [weak self] in self?.mapAccounts($0) }
+            .store(in: &cancellables)
+
+        store.$transactions
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.mapTransactions($0) }
             .store(in: &cancellables)
     }
-    
+
     func refresh() {
-        loadPrimaryAccount()
-        loadTransactions()
+        store.refresh()
     }
 
-    // MARK: - Private loading
+    // MARK: - Private mapping
 
-    private func currentUser(in context: NSManagedObjectContext) -> UserEntity? {
-        guard let user = session.currentUser else { return nil }
-        
-        return try? context.existingObject(with: user.objectID) as? UserEntity
-    }
-
-    private func loadPrimaryAccount() {
-        guard let user = currentUser(in: context) else {
+    // mapping primary account from account entity
+    private func mapAccounts(_ accounts: [AccountEntity]) {
+        guard let account = accounts.first(where: { $0.isPrimary }) ?? accounts.first else {
             hasPrimaryAccount = false
             primaryBalance = 0
             primaryMaskedNumber = "••••• ••••"
@@ -68,61 +61,30 @@ final class DashboardViewModel: ObservableObject {
             return
         }
 
-        let request = NSFetchRequest<AccountEntity>(entityName: "AccountEntity")
-        request.predicate = NSPredicate(format: "owner == %@", user)
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \AccountEntity.createdAt, ascending: false)]
-
-        do {
-            let accounts = try context.fetch(request)
-            guard let account = accounts.first(where: { $0.isPrimary }) ?? accounts.first else {
-                hasPrimaryAccount = false
-                primaryBalance = 0
-                primaryMaskedNumber = "••••• ••••"
-                primaryBankName = "No account"
-                primaryCurrencyCode = "USD"
-                return
-            }
-
-            hasPrimaryAccount = true
-            primaryBalance = (account.balance as NSDecimalNumber?)?.doubleValue ?? 0
-            primaryCurrencyCode = account.currencyCode ?? "USD"
-            primaryBankName = account.bankName ?? "No account"
-            if let masked = account.maskedNumber, !masked.isEmpty {
-                primaryMaskedNumber = masked
-            } else if let number = account.accountNumber, !number.isEmpty {
-                primaryMaskedNumber = AccountFormatting.maskedAccountNumber(number)
-            } else {
-                primaryMaskedNumber = "••••• ••••"
-            }
-        } catch {
-            print("Failed to load primary account:", error.localizedDescription)
+        hasPrimaryAccount = true
+        primaryBalance = (account.balance as NSDecimalNumber?)?.doubleValue ?? 0
+        primaryCurrencyCode = account.currencyCode ?? "USD"
+        primaryBankName = account.bankName ?? "No account"
+        if let masked = account.maskedNumber, !masked.isEmpty {
+            primaryMaskedNumber = masked
+        } else if let number = account.accountNumber, !number.isEmpty {
+            primaryMaskedNumber = AccountFormatting.maskedAccountNumber(number)
+        } else {
+            primaryMaskedNumber = "••••• ••••"
         }
     }
 
-    private func loadTransactions() {
-        guard let user = currentUser(in: context) else {
-            transactions = []
-            return
-        }
-
-        let request: NSFetchRequest<TransactionEntity> = TransactionEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "owner == %@", user)
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \TransactionEntity.date, ascending: false)]
-
-        do {
-            transactions = try context.fetch(request).map { entity in
-                Transaction(
-                    id: entity.id ?? UUID(),
-                    title: entity.title ?? "",
-                    category: entity.category ?? "Transfer",
-                    amount: (entity.amount as NSDecimalNumber?)?.doubleValue ?? 0,
-                    icon: entity.isIncome ? "arrow.down.left" : "arrow.up.right",
-                    isIncome: entity.isIncome,
-                    date: entity.date ?? Date()
-                )
-            }
-        } catch {
-            print("Failed to load transactions:", error.localizedDescription)
+    private func mapTransactions(_ entities: [TransactionEntity]) {
+        transactions = entities.map { entity in
+            Transaction(
+                id: entity.id ?? UUID(),
+                title: entity.title ?? "",
+                category: entity.category ?? "Transfer",
+                amount: (entity.amount as NSDecimalNumber?)?.doubleValue ?? 0,
+                icon: entity.isIncome ? "arrow.down.left" : "arrow.up.right",
+                isIncome: entity.isIncome,
+                date: entity.date ?? Date()
+            )
         }
     }
 }

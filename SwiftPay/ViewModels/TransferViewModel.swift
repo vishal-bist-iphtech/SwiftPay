@@ -18,7 +18,7 @@ final class TransferViewModel: ObservableObject {
     @Published var sentAmount = ""
     @Published var isProcessing = false
     @Published var showSuccess = false
-    @Published var transferError: String?
+    @Published var errorMessage: String?
 
     // MARK: - Recipient
 
@@ -41,41 +41,40 @@ final class TransferViewModel: ObservableObject {
     let intCap = 7
     let fraCap = 2
 
-    static let noRecipientMessage = "Please select a recipient."
-
-    private let context: NSManagedObjectContext
+        private let store: AccountStore
     private let session: AppSession
     private var cancellables = Set<AnyCancellable>()
 
-    init(context: NSManagedObjectContext, session: AppSession) {
-        self.context = context
+    init(store: AccountStore, session: AppSession) {
+        self.store = store
         self.session = session
 
-        loadPrimaryAccount()
+        mapPrimary(store.accounts)
 
-        // Stay in sync with login/logout without any View involvement.
+        store.$accounts
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.mapPrimary($0) }
+            .store(in: &cancellables)
+
+        // Clear any in-progress transfer (recipient, amount, errors) when
+        // the user changes, so one account never sees another's draft.
         session.$currentUser
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                self?.loadPrimaryAccount()
+                self?.resetTransferState()
             }
             .store(in: &cancellables)
     }
 
     /// Reloads the primary account for the current session user.
     func refresh() {
-        loadPrimaryAccount()
+        store.refresh()
     }
 
     /// Starts a fresh transfer.
     func startNewTransfer(recipient: Contact? = nil) {
+        resetTransferState()
         selectedRecipient = recipient
-        transferAmount = ""
-        sentAmount = ""
-        transferError = nil
-        isProcessing = false
-        showSuccess = false
-        showingContactPicker = false
     }
 
     // MARK: - Recipient
@@ -83,8 +82,8 @@ final class TransferViewModel: ObservableObject {
     func selectRecipient(_ recipient: Contact) {
         selectedRecipient = recipient
         showingContactPicker = false
-        if transferError == Self.noRecipientMessage {
-            transferError = nil
+        if errorMessage == AppStrings.noRecipient {
+            errorMessage = nil
         }
     }
 
@@ -105,7 +104,7 @@ final class TransferViewModel: ObservableObject {
     func updateAmount(_ newValue: String) {
         transferAmount = sanitizedAmount(newValue)
         if let amount = Double(transferAmount), amount <= balance {
-            if transferError == "Insufficient balance." { transferError = nil }
+            if errorMessage == AppStrings.insufficientBal { errorMessage = nil }
         }
     }
 
@@ -138,73 +137,62 @@ final class TransferViewModel: ObservableObject {
 
     func send() {
         guard !isProcessing else { return }
-        transferError = nil
+        errorMessage = nil
 
         guard let recipient = selectedRecipient else {
-            transferError = Self.noRecipientMessage
+            errorMessage = AppStrings.noRecipient
             return
         }
 
-        guard let account = primaryAccount() else {
-            transferError = "No account found. Please add an account first."
+        guard let account = store.accounts.first(where: { $0.isPrimary }) ?? store.accounts.first else {
+            errorMessage = AppStrings.noAccount
             return
         }
 
         guard isAmountValid, let amount = Double(transferAmount) else { return }
 
         guard amount <= balance else {
-            transferError = "Insufficient balance."
+            errorMessage = AppStrings.insufficientBal
             return
         }
 
         isProcessing = true
-        let service = CoreDataService(context: context)
 
         // Simulating the API call, then committing to Core Data.
+        // The store refetches once, which updates every observer.
         DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) { [weak self] in
             guard let self else { return }
             do {
-                try service.TransferSuccess(
+                try self.store.applyTransfer(
                     amount: amount,
                     from: account,
                     recipientName: recipient.name
                 )
                 self.sentAmount = self.transferAmount
                 self.transferAmount = ""
-                self.balance -= amount
                 self.isProcessing = false
                 self.showSuccess = true
             } catch {
                 self.isProcessing = false
-                self.transferError = error.localizedDescription
+                self.errorMessage = error.localizedDescription
             }
         }
     }
 
-    // MARK: - Private loading
+    // MARK: - Private
 
-    private func currentUser() -> UserEntity? {
-        guard let user = session.currentUser else { return nil }
-        return try? context.existingObject(with: user.objectID) as? UserEntity
+    private func resetTransferState() {
+        selectedRecipient = nil
+        transferAmount = ""
+        sentAmount = ""
+        errorMessage = nil
+        isProcessing = false
+        showSuccess = false
+        showingContactPicker = false
     }
 
-    private func primaryAccount() -> AccountEntity? {
-        guard let user = currentUser() else { return nil }
-        let request = NSFetchRequest<AccountEntity>(entityName: "AccountEntity")
-        request.predicate = NSPredicate(format: "owner == %@", user)
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \AccountEntity.createdAt, ascending: false)]
-
-        do {
-            let accounts = try context.fetch(request)
-            return accounts.first(where: { $0.isPrimary }) ?? accounts.first
-        } catch {
-            print("Failed to load primary account:", error.localizedDescription)
-            return nil
-        }
-    }
-
-    private func loadPrimaryAccount() {
-        guard let account = primaryAccount() else {
+    private func mapPrimary(_ accounts: [AccountEntity]) {
+        guard let account = accounts.first(where: { $0.isPrimary }) ?? accounts.first else {
             hasAccount = false
             bankName = "No account"
             maskedNumber = "••••• ••••"
