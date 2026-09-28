@@ -178,7 +178,6 @@ struct DashboardView: View {
                         .buttonStyle(.plain)
                     }
                     .padding(.top, 10)
-                    .animation(.easeInOut(duration: 0.2), value: viewModel.hasContacts)
                     
                     
                     // MARK: Transactions
@@ -256,7 +255,7 @@ struct DashboardView: View {
     let store = AccountStore(context: context, session: session)
     return DashboardView()
         .environmentObject(session)
-        .environmentObject(DashboardViewModel(store: store))
+        .environmentObject(DashboardViewModel(store: store, context: context))
         .environmentObject(TransferViewModel(store: store, session: session))
         .environment(
             \.managedObjectContext,

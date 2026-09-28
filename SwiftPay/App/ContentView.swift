@@ -24,7 +24,7 @@ struct ContentView: View {
         _session = StateObject(wrappedValue: session)
         _authVM = StateObject(wrappedValue: AuthViewModel(context: context))
         _accountStore = StateObject(wrappedValue: store)
-        _dashboardVM = StateObject(wrappedValue: DashboardViewModel(store: store))
+        _dashboardVM = StateObject(wrappedValue: DashboardViewModel(store: store, context: context))
         _transferVM = StateObject(wrappedValue: TransferViewModel(store: store, session: session))
         _spendingVM = StateObject(wrappedValue: SpendingViewModel(store: store))
         _router = StateObject(wrappedValue: AppRouter())

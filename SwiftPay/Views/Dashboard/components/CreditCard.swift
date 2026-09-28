@@ -106,7 +106,7 @@ struct CreditCard: View {
                         
                         CardMark(diameter: 22)
                         
-                        Text(maskedNumber.isEmpty ? "credit/debit card" : maskedNumber)
+                        Text(maskedNumber?.isEmpty == true ? "credit/debit card" : maskedNumber ?? "")
                             .font(.subheadline)
                             .fontWeight(.medium)
                             .tracking(0.5)

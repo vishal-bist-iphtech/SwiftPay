@@ -53,11 +53,12 @@ final class CoreDataService {
     }
 
     // MARK: - Dashboard
-
-    func fetchTransactions(for owner: UserEntity) -> [TransactionEntity] {
-        let request = NSFetchRequest<TransactionEntity>(entityName: "TransactionEntity")
-        request.predicate = NSPredicate(format: "owner == %@", owner)
-        request.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
+    
+    /// All transactions for a user, newest first.
+    func fetchTransactions(for user: UserEntity) -> [TransactionEntity] {
+        let request: NSFetchRequest<TransactionEntity> = TransactionEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "owner == %@", user)
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \TransactionEntity.date, ascending: false)]
 
         do {
             return try context.fetch(request)
@@ -67,9 +68,10 @@ final class CoreDataService {
         }
     }
 
-    func fetchPrimaryAccount(for owner: UserEntity) -> AccountEntity? {
+    // fetches user's primary account
+    func fetchPrimaryAccount(for user: UserEntity) -> AccountEntity? {
         let primary = NSFetchRequest<AccountEntity>(entityName: "AccountEntity")
-        primary.predicate = NSPredicate(format: "owner == %@ AND isPrimary == YES", owner)
+        primary.predicate = NSPredicate(format: "owner == %@ AND isPrimary == YES", user)
         primary.fetchLimit = 1
 
         do {
@@ -81,7 +83,7 @@ final class CoreDataService {
         }
 
         let fallback = NSFetchRequest<AccountEntity>(entityName: "AccountEntity")
-        fallback.predicate = NSPredicate(format: "owner == %@", owner)
+        fallback.predicate = NSPredicate(format: "owner == %@", user)
         fallback.fetchLimit = 1
 
         do {
@@ -132,23 +134,6 @@ final class CoreDataService {
     /// Returns true if the user already has a primary account.
     func hasPrimaryAccount(for user: UserEntity) -> Bool {
         fetchPrimaryAccount(for: user) != nil
-    }
-
-    /// Fetches the user's primary account, if any.
-    func fetchPrimaryAccount(for user: UserEntity) -> AccountEntity? {
-        let request = NSFetchRequest<AccountEntity>(entityName: "AccountEntity")
-        request.fetchLimit = 1
-        request.predicate = NSPredicate(
-            format: "owner == %@ AND isPrimary == YES",
-            user
-        )
-
-        do {
-            return try context.fetch(request).first
-        } catch {
-            print("Failed to fetch primary account:", error.localizedDescription)
-            return nil
-        }
     }
 
     /// Fetches all accounts for a user, newest first.
@@ -242,17 +227,4 @@ final class CoreDataService {
         try context.save()
     }
 
-    /// All transactions for a user, newest first.
-    func fetchTransactions(for user: UserEntity) -> [TransactionEntity] {
-        let request: NSFetchRequest<TransactionEntity> = TransactionEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "owner == %@", user)
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \TransactionEntity.date, ascending: false)]
-
-        do {
-            return try context.fetch(request)
-        } catch {
-            print("Failed to fetch transactions:", error.localizedDescription)
-            return []
-        }
-    }
 }

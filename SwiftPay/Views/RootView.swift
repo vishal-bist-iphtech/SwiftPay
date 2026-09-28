@@ -43,7 +43,7 @@ struct RootView: View {
         .environmentObject(AppRouter())
         .environmentObject(session)
         .environmentObject(AuthViewModel(context: context))
-        .environmentObject(DashboardViewModel(store: store))
+        .environmentObject(DashboardViewModel(store: store, context: context))
         .environmentObject(TransferViewModel(store: store, session: session))
         .environmentObject(SpendingViewModel(store: store))
         .environment(
