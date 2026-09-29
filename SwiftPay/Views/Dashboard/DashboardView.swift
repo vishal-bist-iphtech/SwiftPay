@@ -12,6 +12,7 @@ struct DashboardView: View {
 
     @EnvironmentObject var session: AppSession
     @EnvironmentObject var viewModel: DashboardViewModel
+    @EnvironmentObject var uservm: UserDetailsViewModel
     @EnvironmentObject var transferVM: TransferViewModel
 
     @State private var showTransfer = false
@@ -39,7 +40,7 @@ struct DashboardView: View {
                             NavigationLink {
                                 ProfileView()
                             } label: {
-                                Image("demo_image1")
+                               uservm.profileImage
                                     .resizable()
                                     .scaledToFill()
                                     .font(.system(size: 50))
@@ -105,6 +106,7 @@ struct DashboardView: View {
                         // add account
                         NavigationLink {
                             AddAccountView()
+                                .environmentObject(viewModel)
                         } label: {
                             QuickAction(
                                 title: "Add account",
@@ -122,15 +124,14 @@ struct DashboardView: View {
                                 icon: "arrow.up.right"
                             )
                         }
-                        .buttonStyle(.plain)
                         
                         // spending
                         NavigationLink {
                             SpendingView()
                         } label:{
                             QuickAction(
-                                title: "More",
-                                icon: "square.grid.2x2"
+                                title: "Spending",
+                                icon: "chart.line.uptrend.xyaxis"
                             )
                         }
                     }
@@ -257,6 +258,8 @@ struct DashboardView: View {
         .environmentObject(session)
         .environmentObject(DashboardViewModel(store: store, context: context))
         .environmentObject(TransferViewModel(store: store, session: session))
+        .environmentObject(BankDetailsViewModel(store: store))
+        .environmentObject(UserDetailsViewModel(context: context, session: session))
         .environment(
             \.managedObjectContext,
             context

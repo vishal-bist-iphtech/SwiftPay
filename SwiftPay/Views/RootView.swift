@@ -46,6 +46,9 @@ struct RootView: View {
         .environmentObject(DashboardViewModel(store: store, context: context))
         .environmentObject(TransferViewModel(store: store, session: session))
         .environmentObject(SpendingViewModel(store: store))
+        .environmentObject(BankDetailsViewModel(store: store))
+        .environmentObject(UserDetailsViewModel(context: context, session: session))
+        .environmentObject(store)
         .environment(
             \.managedObjectContext,
             context

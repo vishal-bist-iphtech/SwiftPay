@@ -14,6 +14,7 @@ struct AddAccountView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var viewContext
     @EnvironmentObject var session: AppSession
+    @EnvironmentObject var viewModel: DashboardViewModel
 
     @State private var selectedType: AddAccountType = .bank
     @State private var bank: String = ""
@@ -29,9 +30,6 @@ struct AddAccountView: View {
     @FocusState private var focusedField: AddAccountField?
 
     var onSave: (() -> Void)? = nil
-
-    private let banks = ["State Bank of India", "HDFC Bank", "ICICI Bank", "Axis Bank"]
-    private let cardNetworks = ["Visa", "Mastercard", "RuPay"]
 
     var body: some View {
 
@@ -82,13 +80,6 @@ struct AddAccountView: View {
                         .submitLabel(.next)
                         .focused($focusedField, equals: .accountNumber)
                         .onSubmit { focusedField = .accountName }
-                        .onChange(of: accountNumber) { _, newValue in
-                            let digits = newValue.filter(\.isNumber)
-                            accountNumber = String(digits.prefix(16))
-                            if digits.count >= 4 {
-                                lastFour = String(digits.suffix(4).prefix(4))
-                            }
-                        }
                         .padding(.horizontal, 16)
                         .frame(height: 52)
                         .background(Color("surface"))
@@ -104,7 +95,7 @@ struct AddAccountView: View {
                         .padding(.top, 18)
 
                    DropdownField(value: bank, placeholder: "Select your bank") {
-                        ForEach(banks, id: \.self) { item in
+                       ForEach(viewModel.Banks, id: \.self) { item in
                             Button(item) { bank = item }
                         }
                     }
@@ -139,7 +130,7 @@ struct AddAccountView: View {
                         lastFour: $lastFour,
                         cvvNumber: $cvvNumber,
                         cardNetwork: $cardNetwork,
-                        cardNetworks: cardNetworks,
+                        cardNetworks: viewModel.CardNetworks,
                         focusedField: $focusedField
                     )
                     .padding(.top, 16)
@@ -191,10 +182,10 @@ struct AddAccountView: View {
     private func validationError() -> String? {
         let numberDigits = accountNumber.filter(\.isNumber)
         if numberDigits.count < 12 {
-            return AppStrings.validAcc
+            return AppStrings.inValidAcc
         }
         if bank.isEmpty {
-            return AppStrings.noBank
+            return AppStrings.selectBank
         }
         if accountName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return AppStrings.noAccName
@@ -203,10 +194,10 @@ struct AddAccountView: View {
             return AppStrings.last4digits
         }
         if cvvNumber.filter(\.isNumber).count < 3 {
-            return AppStrings.validCVV
+            return AppStrings.inValidCVV
         }
         if cardNetwork.isEmpty {
-            return AppStrings.cardNtw
+            return AppStrings.selectCardNtw
         }
         return nil
     }
@@ -229,11 +220,10 @@ struct AddAccountView: View {
         focusedField = nil
         isSaving = true
 
-        // Flush any pending keyboard state before hitting Core Data.
         DispatchQueue.main.async {
             let service = CoreDataService(context: viewContext)
             do {
-                try service.createAccount(
+                try service.createBankAccount(
                     for: currentUser,
                     accountNumber: accountNumber.filter(\.isNumber),
                     bankName: bank,
@@ -257,10 +247,16 @@ struct AddAccountView: View {
 
 
 #Preview {
+    
+    let context = PersistenceController.preview.container.viewContext
+    let session = AppSession()
+    let store = AccountStore(context: context, session: session)
+    
     NavigationStack {
         AddAccountView()
             .environmentObject(AppSession())
-            .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+            .environmentObject(DashboardViewModel(store: store, context: context))
+            .environment(\.managedObjectContext, context)
     }
     .preferredColorScheme(.dark)
 }

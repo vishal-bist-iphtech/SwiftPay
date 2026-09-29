@@ -13,7 +13,7 @@ struct SpendingView: View {
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var viewModel: SpendingViewModel
-    /// Selected card page — drives the custom dot indicator below the carousel.
+    /// Selected card page
     @State private var selectedCardIndex = 0
     /// Presents the month-only picker for the current year.
     @State private var showingMonthPicker = false
@@ -140,11 +140,6 @@ struct SpendingView: View {
 }
 
 /// Month-only picker restricted to the current year.
-///
-/// Shows all 12 months of `viewModel.currentYear` in a grid. Months after
-/// the current month are disabled so the user can only pick the current
-/// (default) or past months — never future ones. Tapping a selectable
-/// month updates the view model and dismisses the sheet.
 private struct MonthPickerSheet: View {
 
     @ObservedObject var viewModel: SpendingViewModel
