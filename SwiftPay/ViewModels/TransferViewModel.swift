@@ -144,12 +144,11 @@ final class TransferViewModel: ObservableObject {
             return
         }
 
-        guard let account = store.accounts.first(where: { $0.isPrimary }) ?? store.accounts.first else {
-            errorMessage = AppStrings.noAccount
-            return
-        }
+        guard let account = store.accounts.first(where: { $0.isPrimary }) ?? store.accounts.first
+        else {return}
 
-        guard isAmountValid, let amount = Double(transferAmount) else { return }
+        guard isAmountValid,
+              let amount = Double(transferAmount) else { return }
 
         guard amount <= balance else {
             errorMessage = AppStrings.insufficientBal
@@ -163,7 +162,7 @@ final class TransferViewModel: ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) { [weak self] in
             guard let self else { return }
             do {
-                try self.store.applyTransfer(
+                try self.store.applyMoneyTransfer(
                     amount: amount,
                     from: account,
                     recipientName: recipient.name

@@ -12,6 +12,12 @@ import CoreData
 
 final class DashboardViewModel: ObservableObject {
 
+    private let service: CoreDataService
+    private let store: AccountStore
+    private var cancellables = Set<AnyCancellable>()
+    private var isObserving = false
+    
+    
     // MARK: - Primary account
     @Published var primaryBalance: Double = 0
     @Published var primaryMaskedNumber = "••••• ••••"
@@ -19,21 +25,9 @@ final class DashboardViewModel: ObservableObject {
     @Published var primaryCurrencyCode = "USD"
     @Published var hasPrimaryAccount = false
     @Published var contacts: [ContactItem] = []
-
-    // MARK: - Transactions
     @Published var transactions: [Transaction] = []
 
-    // MARK: - Computed
-    var hasTransactions: Bool { !transactions.isEmpty }
-    var hasContacts: Bool { !contacts.isEmpty }
 
-    // MARK: - Dependencies
-    private let service: CoreDataService
-    private let store: AccountStore
-    private var cancellables = Set<AnyCancellable>()
-    private var isObserving = false
-
-    // MARK: - Init
     init(store: AccountStore, context: NSManagedObjectContext) {
         self.store = store
         self.service = CoreDataService(context: context)
@@ -51,11 +45,33 @@ final class DashboardViewModel: ObservableObject {
             .sink { [weak self] in self?.mapTransactions($0) }
             .store(in: &cancellables)
     }
+    
+    
+    // MARK: - Computed
+    var hasTransactions: Bool { !transactions.isEmpty }
+    var hasContacts: Bool { !contacts.isEmpty }
+    
+    
+    let Banks = [
+        "JPMorgan Chase",
+        "Bank of America",
+        "Wells Fargo",
+        "Citibank"
+    ]
+    let CardNetworks = [
+        "Visa",
+        "Mastercard",
+        "RuPay"
+    ]
+
 
     func refresh() {
         store.refresh()
     }
 
+    
+// MARK: -------------------- User Session ------------------------
+    
     /// Starts observing the session; reloads whenever the user changes.
     func observe(session: AppSession) {
         guard !isObserving else { return }
@@ -70,6 +86,7 @@ final class DashboardViewModel: ObservableObject {
     /// Loads balance + transactions + contacts for `user`.
     /// Empty state when user is nil.
     func load(for user: UserEntity?) {
+        
         guard let user else {
             resetToEmptyState()
             return
@@ -122,7 +139,7 @@ final class DashboardViewModel: ObservableObject {
         contacts = []
     }
 
-    /// SF Symbol for a category.
+    /// SF Symbol for transaction category.
     static func icon(category: String, title: String, isIncome: Bool) -> String {
         if isIncome { return "building.2.fill" }
 
@@ -146,7 +163,7 @@ final class DashboardViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Mapping helpers
+    // MARK: ----------------- Helpers -------------------------
 
     static func doubleValue(_ value: Any?) -> Double {
         if let number = value as? NSDecimalNumber {
@@ -167,7 +184,7 @@ final class DashboardViewModel: ObservableObject {
         return "••••• \(digits.suffix(visibleDigits))"
     }
 
-    // MARK: - Private mapping
+    // MARK: --------------------- Private mapping ----------------------------
 
     /// Maps the primary account from an account entity list.
     private func mapAccounts(_ accounts: [AccountEntity]) {

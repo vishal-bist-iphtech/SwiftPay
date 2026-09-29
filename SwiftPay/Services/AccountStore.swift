@@ -40,12 +40,18 @@ final class AccountStore: ObservableObject {
     }
 
     /// Commits a transfer and refetches once so all observers update.
-    func applyTransfer(
+    func applyMoneyTransfer(
         amount: Double,
         from account: AccountEntity,
         recipientName: String
     ) throws {
-        try CoreDataService(context: context).TransferSuccess(
+        
+        guard let user = getUser(),
+              let account = CoreDataService(context: context).fetchAccount(id: account.id!),
+              account.owner?.id == user.id else {
+            return
+        }
+        try CoreDataService(context: context).MoneyTransferSuccess(
             amount: amount,
             from: account,
             recipientName: recipientName
@@ -53,15 +59,40 @@ final class AccountStore: ObservableObject {
         reload()
     }
 
+
+    // MARK: --------------- Bank accounts management ---------------------
+
+    // Marks the account with `id` as primary for the current user, then reloads.
+    func setPrimaryAccount(id: UUID) throws {
+        
+        guard let user = getUser() else { return }
+        try CoreDataService(context: context).setPrimaryAccount(id: id, for: user)
+        reload()
+    }
+
+    // Deletes the bank account
+    func deleteBankAccount(id: UUID) throws {
+        
+        guard let user = getUser() else { return }
+        try CoreDataService(context: context).deleteBankAccount(id: id, for: user)
+        reload()
+    }
+
+
     // MARK: - Private
 
-    private func resolvedUser() -> UserEntity? {
-        guard let user = session.currentUser else { return nil }
-        return try? context.existingObject(with: user.objectID) as? UserEntity
+    /// Takes the currentUser id from session manager  and returns the respective UserEntity from coredata in this context.
+    private func getUser() -> UserEntity? {
+        
+        guard let sessionUser = session.currentUser else { return nil }
+        
+        guard let id = sessionUser.id else { return nil }
+        return CoreDataService(context: context).fetchUser(id: id)
     }
 
     private func reload() {
-        guard let user = resolvedUser() else {
+        
+        guard let user = getUser() else {
             accounts = []
             transactions = []
             return

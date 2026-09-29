@@ -166,7 +166,7 @@ final class SpendingViewModel: ObservableObject {
                 masked = "••••• ••••"
             }
             return SpendingAccountCard(
-                id: account.objectID.uriRepresentation().absoluteString,
+                id: (account.id ?? UUID()).uuidString,
                 balance: (account.balance as NSDecimalNumber?)?.doubleValue ?? 0,
                 maskedNumber: masked
             )

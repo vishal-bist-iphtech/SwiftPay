@@ -50,7 +50,7 @@ final class AuthViewModel: ObservableObject {
         let phone = normalizedPhone
         
         guard phone.count == 10 else {
-            errorMessage = AppStrings.validPhone
+            errorMessage = AppStrings.inValidPhone
             return nil
         }
         
@@ -81,13 +81,13 @@ final class AuthViewModel: ObservableObject {
         }
         
         guard isValidName(name) else {
-            errorMessage = AppStrings.validName
+            errorMessage = AppStrings.inValidName
             return nil
         }
         
         guard isValidEmail(email) else {
             
-            errorMessage = AppStrings.validEmail
+            errorMessage = AppStrings.inValidEmail
             return nil
         }
         
