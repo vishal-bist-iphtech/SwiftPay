@@ -17,6 +17,8 @@ struct ContentView: View {
     @StateObject private var dashboardVM: DashboardViewModel
     @StateObject private var transferVM: TransferViewModel
     @StateObject private var spendingVM: SpendingViewModel
+    @StateObject private var bankDetailsVM: BankDetailsViewModel
+    @StateObject private var userDetailsVM: UserDetailsViewModel
 
     init(context: NSManagedObjectContext = PersistenceController.shared.container.viewContext) {
         let session = AppSession()
@@ -27,6 +29,8 @@ struct ContentView: View {
         _dashboardVM = StateObject(wrappedValue: DashboardViewModel(store: store, context: context))
         _transferVM = StateObject(wrappedValue: TransferViewModel(store: store, session: session))
         _spendingVM = StateObject(wrappedValue: SpendingViewModel(store: store))
+        _bankDetailsVM = StateObject(wrappedValue: BankDetailsViewModel(store: store))
+        _userDetailsVM = StateObject(wrappedValue: UserDetailsViewModel(context: context, session: session))
         _router = StateObject(wrappedValue: AppRouter())
     }
 
@@ -39,6 +43,9 @@ struct ContentView: View {
             .environmentObject(dashboardVM)
             .environmentObject(transferVM)
             .environmentObject(spendingVM)
+            .environmentObject(bankDetailsVM)
+            .environmentObject(userDetailsVM)
+            .environmentObject(accountStore)
     }
 }
 
