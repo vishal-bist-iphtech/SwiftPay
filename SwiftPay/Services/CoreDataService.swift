@@ -15,31 +15,61 @@ final class CoreDataService {
         self.context = context
     }
     
-    // MARK: Fetch User
-    func fetchUser(phone: String) -> UserEntity? {
+    
+    // MARK: ---------------- Validation Error -------------------
+    
+    enum ValidationError: LocalizedError {
         
+        case invalidAmount
+        case noAccount
+        case insufficientBal
+        
+        var errorDescription: String? {
+            switch self {
+                
+            case .invalidAmount:
+                return AppStrings.inValidAmt
+                
+            case .noAccount:
+                return AppStrings.noAccount
+                
+            case .insufficientBal:
+                return AppStrings.insufficientBal
+                
+            }
+        
+        }
+    }
+    
+    // MARK: ---------------------- User ------------------------------
+    
+    // fetch user using phone number
+    func fetchUser(phone: String) -> UserEntity? {
+
         let request = NSFetchRequest<UserEntity>(
             entityName: "UserEntity"
         )
-        
+
         request.fetchLimit = 1
-        
+
         request.predicate = NSPredicate(
             format: "phone == %@",
             phone
         )
-        
+
         do {
             // return the first user
-            return try context.fetch(request).first
+            let user = try context.fetch(request).first
+            return user
         } catch {
             print("Failed to fetch user:", error.localizedDescription)
             return nil
         }
     }
 
-    /// Fetch a user by id. Used to restore the persisted auth session.
+    // fetch a user by id. Used to restore the persisted auth session.
     func fetchUser(id: UUID) -> UserEntity? {
+        
         let request = NSFetchRequest<UserEntity>(entityName: "UserEntity")
         request.fetchLimit = 1
         request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
@@ -51,11 +81,51 @@ final class CoreDataService {
             return nil
         }
     }
-
-    // MARK: - Dashboard
     
-    /// All transactions for a user, newest first.
+    // Create User
+    func createUser(
+        phone: String,
+        name: String,
+        email: String
+    ) throws -> UserEntity {
+
+        let user = UserEntity(context: context)
+
+        user.id = UUID()
+        user.phone = phone
+        user.name = name
+        user.email = email
+        user.createdAt = Date()
+
+        try context.save()
+
+        return user
+    }
+    
+    // Update user details
+    // Note: phone is the login identity and is never updated here.
+    func updateUser(
+        _ user: UserEntity,
+        name: String,
+        email: String,
+        profileImage: Data?
+    ) throws {
+        
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        user.name = trimmedName
+        user.email = trimmedEmail
+        user.profileImage = profileImage
+
+        try context.save()
+    }
+
+    // MARK: ------------------------ Dashboard -------------------------
+    
+    // fetch all transactions of a user, newest first.
     func fetchTransactions(for user: UserEntity) -> [TransactionEntity] {
+        
         let request: NSFetchRequest<TransactionEntity> = TransactionEntity.fetchRequest()
         request.predicate = NSPredicate(format: "owner == %@", user)
         request.sortDescriptors = [NSSortDescriptor(keyPath: \TransactionEntity.date, ascending: false)]
@@ -68,8 +138,9 @@ final class CoreDataService {
         }
     }
 
-    // fetches user's primary account
+    // fetch user's primary account
     func fetchPrimaryAccount(for user: UserEntity) -> AccountEntity? {
+        
         let primary = NSFetchRequest<AccountEntity>(entityName: "AccountEntity")
         primary.predicate = NSPredicate(format: "owner == %@ AND isPrimary == YES", user)
         primary.fetchLimit = 1
@@ -94,14 +165,16 @@ final class CoreDataService {
         }
     }
 
-    /// Contacts owned by `owner`, most recent first.
+    // fetch all user contacts or transaction contacts, most recent first.
     func fetchContacts(for owner: UserEntity) -> [ContactEntity] {
+        
         let request = NSFetchRequest<ContactEntity>(entityName: "ContactEntity")
         request.predicate = NSPredicate(format: "owner == %@", owner)
         request.sortDescriptors = [NSSortDescriptor(key: "lastTransactionAt", ascending: false)]
 
         do {
-            return try context.fetch(request)
+            let contacts = try context.fetch(request)
+            return contacts
         } catch {
             print("Failed to fetch contacts:", error.localizedDescription)
             return []
@@ -109,49 +182,62 @@ final class CoreDataService {
     }
     
     
-    // MARK: Create User
-    func createUser(
-        phone: String,
-        name: String,
-        email: String
-    ) throws -> UserEntity {
 
-        let user = UserEntity(context: context)
+    // MARK: ---------------------- Bank Accounts --------------------------
 
-        user.id = UUID()
-        user.phone = phone
-        user.name = name
-        user.email = email
-        user.createdAt = Date()
-
-        try context.save()
-
-        return user
-    }
-
-    // MARK: - Accounts
-
-    /// Returns true if the user already has a primary account.
+    // Returns true if the user already has a primary account.
     func hasPrimaryAccount(for user: UserEntity) -> Bool {
         fetchPrimaryAccount(for: user) != nil
     }
 
-    /// Fetches all accounts for a user, newest first.
-    func fetchAccounts(for user: UserEntity) -> [AccountEntity] {
+    // fetches all linked accounts of a user, newest first.
+    func fetchAllAccounts(for user: UserEntity) -> [AccountEntity] {
+        
         let request = NSFetchRequest<AccountEntity>(entityName: "AccountEntity")
         request.predicate = NSPredicate(format: "owner == %@", user)
         request.sortDescriptors = [NSSortDescriptor(keyPath: \AccountEntity.createdAt, ascending: false)]
 
         do {
-            return try context.fetch(request)
+            let accounts = try context.fetch(request)
+            return accounts
         } catch {
             print("Failed to fetch accounts:", error.localizedDescription)
             return []
         }
     }
 
+    // fetches a single account by UUID. Returns nil when missing/inaccessible.
+    func fetchAccount(id: UUID) -> AccountEntity? {
+        
+        let request = NSFetchRequest<AccountEntity>(entityName: "AccountEntity")
+        request.fetchLimit = 1
+        request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+
+        do {
+            return try context.fetch(request).first
+        } catch {
+            print("Failed to fetch account by id:", error.localizedDescription)
+            return nil
+        }
+    }
+    
+    /// Sets the account with `id` as the single primary account for user.
+    func setPrimaryAccount(id: UUID, for user: UserEntity) throws {
+        
+        let accounts = fetchAllAccounts(for: user)
+        guard accounts.contains(where: { $0.id == id }) else {
+            throw ValidationError.noAccount
+        }
+        
+        for existing in accounts {
+            existing.isPrimary = (existing.id == id)
+        }
+        
+        try context.save()
+    }
+
     // Creating an Account.
-    func createAccount(
+    func createBankAccount(
         for owner: UserEntity,
         accountNumber: String,
         bankName: String,
@@ -159,6 +245,7 @@ final class CoreDataService {
         balance: NSDecimalNumber = NSDecimalNumber(value: 6000),
         currencyCode: String = "USD"
     ) throws -> AccountEntity {
+        
         let isPrimary = !hasPrimaryAccount(for: owner)
 
         let account = AccountEntity(context: context)
@@ -178,51 +265,59 @@ final class CoreDataService {
         return account
     }
 
-    // MARK: - Transfers
+    // Deletes the bank account.
+    func deleteBankAccount(id: UUID, for user: UserEntity) throws {
+        
+        let accounts = fetchAllAccounts(for: user)
+        guard let target = accounts.first(where: { $0.id == id }) else {
+            throw ValidationError.noAccount
+        }
+        
+        let wasPrimary = target.isPrimary
+        context.delete(target)
+        try context.save()
 
-    enum TransferFailure: LocalizedError {
-        case insufficientFunds(available: Double)
-        case invalidAmount
-
-        var errorDescription: String? {
-            switch self {
-            case .insufficientFunds(let available):
-                return "Insufficient balance. Available: \(AccountFormatting.formattedBalance(available))"
-            case .invalidAmount:
-                return "Enter a valid transfer amount."
+        if wasPrimary {
+            let remaining = fetchAllAccounts(for: user)
+            if let newest = remaining.first {
+                newest.isPrimary = true
+                try context.save()
             }
         }
     }
 
+    // MARK: -------------------- Money Transfers / Transactions -----------------------
 
-    // transfer successfull
-    func TransferSuccess(
+    // Create transaction if money transfer successfull
+    func MoneyTransferSuccess(
         amount: Double,
         from account: AccountEntity,
         recipientName: String
     ) throws {
+        
         guard amount > 0 else {
-            throw TransferFailure.invalidAmount
+            throw ValidationError.invalidAmount
         }
 
         let current = (account.balance as NSDecimalNumber?)?.doubleValue ?? 0
 
         guard amount <= current else {
-            throw TransferFailure.insufficientFunds(available: current)
+            throw ValidationError.insufficientBal
         }
 
+        // deducting transfered amount from account balance
         account.balance = NSDecimalNumber(value: current - amount)
 
-        let record = TransactionEntity(context: context)
-        record.id = UUID()
-        record.title = recipientName
-        record.category = "Transfer"
-        record.amount = NSDecimalNumber(value: amount)
-        record.isIncome = false
-        record.status = "completed"
-        record.date = Date()
-        record.owner = account.owner
-        record.account = account
+        let transaction = TransactionEntity(context: context)
+        transaction.id = UUID()
+        transaction.title = recipientName
+        transaction.category = "Money Transfer"
+        transaction.amount = NSDecimalNumber(value: amount)
+        transaction.isIncome = false
+        transaction.status = "completed"
+        transaction.date = Date()
+        transaction.owner = account.owner
+        transaction.account = account
 
         try context.save()
     }
