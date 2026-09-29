@@ -41,12 +41,7 @@ struct ProfileView: View {
                     // MARK: User card
                     HStack(spacing: 14) {
 
-                        Image("demo_image1")
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 64, height: 64)
-                            .background(Color("surface"))
-                            .clipShape(Circle())
+                        profileAvatar
                             
 
                         VStack(alignment: .leading, spacing: 4) {
@@ -76,19 +71,29 @@ struct ProfileView: View {
 
                     // MARK: Account
                     ProfileSection(title: "Account") {
-                        
-                        ProfileRow(
-                            icon: "person.fill",
-                            title: "Personal details",
-                            subtitle: "Name, email, phone"
-                        )
-                        
-                        ProfileRow(
-                            icon: "building.columns.fill",
-                            title: "Bank accounts & cards",
-                            subtitle: "Manage linked accounts"
-                        )
-                        
+
+                        NavigationLink {
+                            UserDetailsView()
+                        } label: {
+                            ProfileRow(
+                                icon: "person.fill",
+                                title: "Personal details",
+                                subtitle: "Name, email, phone"
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        NavigationLink {
+                            BankDetailsView()
+                        } label: {
+                            ProfileRow(
+                                icon: "building.columns.fill",
+                                title: "Bank accounts & cards",
+                                subtitle: "Manage linked accounts"
+                            )
+                        }
+                        .buttonStyle(.plain)
+
                     }
 
                     // MARK: Preferences section
@@ -216,11 +221,40 @@ struct ProfileView: View {
         // Single VM intent — session clear + form reset + routing live in AuthViewModel.
         authVM.handleLogout(session: session, router: router)
     }
+
+    /// Avatar backed by Core Data `profileImage` when present.
+    @ViewBuilder
+    private var profileAvatar: some View {
+        if let data = session.currentUser?.profileImage,
+           let uiImage = UIImage(data: data) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 64, height: 64)
+                .background(Color("surface"))
+                .clipShape(Circle())
+        } else {
+            Image("demo_image1")
+                .resizable()
+                .scaledToFill()
+                .frame(width: 64, height: 64)
+                .background(Color("surface"))
+                .clipShape(Circle())
+        }
+    }
 }
 
 #Preview {
-    ProfileView()
-        .environmentObject(AppSession())
-        .environmentObject(AppRouter())
-        .environmentObject(AuthViewModel(context: PersistenceController.preview.container.viewContext))
+    let context = PersistenceController.preview.container.viewContext
+    let session = AppSession()
+    let store = AccountStore(context: context, session: session)
+    return NavigationStack {
+        ProfileView()
+    }
+    .environmentObject(session)
+    .environmentObject(AppRouter())
+    .environmentObject(AuthViewModel(context: context))
+    .environmentObject(BankDetailsViewModel(store: store))
+    .environmentObject(UserDetailsViewModel(context: context, session: session))
+    .environment(\.managedObjectContext, context)
 }
