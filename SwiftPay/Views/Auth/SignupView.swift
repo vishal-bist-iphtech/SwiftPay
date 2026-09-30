@@ -136,5 +136,5 @@ struct SignupView: View {
     SignupView()
     .environmentObject(AppRouter())
     .environmentObject(AppSession())
-    .environmentObject(AuthViewModel(context: PersistenceController.preview.container.viewContext))
+    .environmentObject(AuthViewModel())
 }

@@ -16,7 +16,7 @@ struct TransactionRow: View {
         
         HStack(spacing: 14) {
             
-            Image(systemName: transaction.icon)
+            Image(systemName: TransactionViewModel.icon(for: transaction.category, isIncome: transaction.isIncome))
                 .font(.title)
                 .foregroundStyle(
                     Color("primaryText")

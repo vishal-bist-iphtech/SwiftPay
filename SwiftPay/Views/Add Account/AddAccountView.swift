@@ -255,7 +255,7 @@ struct AddAccountView: View {
     NavigationStack {
         AddAccountView()
             .environmentObject(AppSession())
-            .environmentObject(DashboardViewModel(store: store, context: context))
+            .environmentObject(DashboardViewModel(store: store))
             .environment(\.managedObjectContext, context)
     }
     .preferredColorScheme(.dark)

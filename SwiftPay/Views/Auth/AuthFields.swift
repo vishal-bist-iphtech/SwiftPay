@@ -13,7 +13,11 @@ struct LabelField: View {
     @Binding var text: String
     let icon: String
     
-    let maxLength = 14
+    private var maxLength: Int {
+        placeholder == "phone"
+            ? 10
+            : 35
+    }
     
     var keyboardType: UIKeyboardType = .default
     

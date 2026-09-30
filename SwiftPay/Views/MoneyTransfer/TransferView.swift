@@ -158,8 +158,8 @@ struct TransferView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-
+                NavigationLink {
+                    TransactionView()
                 } label: {
                     Image(systemName: "clock.arrow.trianglehead.counterclockwise.rotate.90")
                 }
