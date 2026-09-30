@@ -6,18 +6,21 @@
 //
 
 import SwiftUI
+import CoreData // Preview only; all Core Data work lives in the ViewModel.
 
 
 struct SpendingView: View {
 
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var viewModel = SpendingViewModel()
-    /// Selected card page — drives the custom dot indicator below the carousel.
+    @EnvironmentObject var viewModel: SpendingViewModel
+    /// Selected card page
     @State private var selectedCardIndex = 0
     /// Presents the month-only picker for the current year.
     @State private var showingMonthPicker = false
-    /// Number of cards in the carousel. Keep in sync with the TabView pages.
-    private let cardCount = 3
+
+    private var cardCount: Int {
+        max(viewModel.accountCards.count, 1)
+    }
 
     var body: some View {
         ZStack {
@@ -28,21 +31,31 @@ struct SpendingView: View {
 
                 VStack(spacing: 10) {
 
-                    // MARK: Cards
-                    
+                    // MARK: Cards (Core Data balances / masked numbers)
+
                     TabView(selection: $selectedCardIndex) {
-                        CompactCard()
-                            .padding(.horizontal, 20)
-                            .tag(0)
-                        CompactCard()
-                            .padding(.horizontal, 20)
-                            .tag(1)
-                        CompactCard()
-                            .padding(.horizontal, 20)
-                            .tag(2)
+                        if viewModel.accountCards.isEmpty {
+                            CompactCard(balance: 0, maskedNumber: "••••• ••••")
+                                .padding(.horizontal, 20)
+                                .tag(0)
+                        } else {
+                            ForEach(Array(viewModel.accountCards.enumerated()), id: \.element.id) { index, card in
+                                CompactCard(
+                                    balance: card.balance,
+                                    maskedNumber: card.maskedNumber
+                                )
+                                .padding(.horizontal, 20)
+                                .tag(index)
+                            }
+                        }
                     }
                     .tabViewStyle(.page(indexDisplayMode: .never))
                     .frame(height: 120)
+                    .onChange(of: viewModel.accountCards.count) { _, newCount in
+                        if selectedCardIndex >= max(newCount, 1) {
+                            selectedCardIndex = 0
+                        }
+                    }
 
                     // Custom page dots.
                     HStack(spacing: 6) {
@@ -105,6 +118,9 @@ struct SpendingView: View {
         }
         .navigationTitle("Spending")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            viewModel.refresh()
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -124,11 +140,6 @@ struct SpendingView: View {
 }
 
 /// Month-only picker restricted to the current year.
-///
-/// Shows all 12 months of `viewModel.currentYear` in a grid. Months after
-/// the current month are disabled so the user can only pick the current
-/// (default) or past months — never future ones. Tapping a selectable
-/// month updates the view model and dismisses the sheet.
 private struct MonthPickerSheet: View {
 
     @ObservedObject var viewModel: SpendingViewModel
@@ -193,7 +204,11 @@ private struct MonthPickerSheet: View {
 
 
 #Preview {
-    NavigationStack {
+    let context = PersistenceController.preview.container.viewContext
+    let session = AppSession()
+    let store = AccountStore(context: context, session: session)
+    return NavigationStack {
         SpendingView()
+            .environmentObject(SpendingViewModel(store: store))
     }
 }

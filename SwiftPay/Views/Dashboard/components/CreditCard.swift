@@ -8,9 +8,6 @@
 import SwiftUI
 
 
-/// Account card. Pure presentational View — all data comes from the caller
-/// (DashboardView binds it to DashboardViewModel). Shows placeholders when
-/// there is no linked account.
 struct CreditCard: View {
     
     @State private var isBalanceVisible: Bool = false
@@ -18,24 +15,27 @@ struct CreditCard: View {
     var balance: Double = 0
     var currencyCode: String = "USD"
     
-    let bank: String = "State Bank of India"
-    let accountNumber = "123456789123456"
-
+    var bank: String = "State Bank of India"
+    var accountNumber = "123456789123456"
+    
+    // masked number from Core Data.
+    var maskedNumber: String? = nil
+    
     var body: some View {
         
         ZStack {
             VStack(alignment: .leading, spacing: 0) {
-
+                
                 // MARK: Top row
                 HStack(alignment: .center) {
-
+                    
                     Text("Card balance")
                         .font(.title3)
                         .fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.75))
-
+                    
                     Spacer()
-
+                    
                     Button {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             isBalanceVisible.toggle()
@@ -46,15 +46,15 @@ struct CreditCard: View {
                             ? "eye.fill"
                             : "eye.slash.fill"
                         )
-                            .font(.title2)
-                            .fontWeight(.medium)
-                            .foregroundStyle(.white.opacity(0.7))
+                        .font(.title2)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.white.opacity(0.7))
                     }
                 }
-
+                
                 // MARK: Middle row
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
-
+                    
                     Text(
                         isBalanceVisible
                         ? balanceFormatting(balance)
@@ -66,7 +66,7 @@ struct CreditCard: View {
                     .monospacedDigit()
                     .contentTransition(.numericText())
                     .lineLimit(1)
-
+                    
                     if isBalanceVisible {
                         Text(currencyCode)
                             .font(.title3)
@@ -76,12 +76,12 @@ struct CreditCard: View {
                     }
                 }
                 .padding(.top, 10)
-
+                
                 Spacer(minLength: 12)
-
+                
                 // MARK: Bottom row
                 HStack(alignment: .bottom) {
-
+                    
                     // Bank name
                     HStack(spacing: 6) {
 
@@ -89,7 +89,7 @@ struct CreditCard: View {
                             .font(.headline)
                             .fontWeight(.semibold)
                             .foregroundStyle(.white)
-
+                        
                         Image(systemName: "chevron.right")
                             .font(.caption)
                             .fontWeight(.semibold)
@@ -98,15 +98,15 @@ struct CreditCard: View {
                     .padding(.horizontal, 10)
                     .padding(.vertical, 7)
                     .glassEffect(.clear, in: .rect(cornerRadius: 12))
-
+                    
                     Spacer()
-
+                    
                     // cardtype + masked number
                     VStack(alignment: .trailing, spacing: 8) {
-
+                        
                         CardMark(diameter: 22)
                         
-                        Text(maskedNumber.isEmpty ? "credit/debit card" : maskedNumber)
+                        Text(maskedNumber?.isEmpty == true ? "credit/debit card" : maskedNumber ?? "")
                             .font(.subheadline)
                             .fontWeight(.medium)
                             .tracking(0.5)
@@ -135,7 +135,7 @@ struct CreditCard: View {
                 .offset(x: 0,y: 80)
         }
     }
-
+    
     // Gradient background
     var cardBackground: some View {
         ZStack {
@@ -149,21 +149,21 @@ struct CreditCard: View {
                 startPoint: .topTrailing,
                 endPoint: .bottomLeading
             )
-
+            
             // Soft top-right glow
             Circle()
                 .fill(.white.opacity(0.14))
                 .frame(width: 220, height: 220)
                 .blur(radius: 60)
                 .offset(x: 110, y: -90)
-
+            
             // Deep bottom-left shade
             Circle()
                 .fill(.black.opacity(0.22))
                 .frame(width: 200, height: 200)
                 .blur(radius: 50)
                 .offset(x: -110, y: 80)
-
+            
             // Bubble cluster
             Group {
                 Circle()
@@ -188,25 +188,13 @@ struct CreditCard: View {
             }
         }
     }
-    
-    // balance formatting
+
     private func balanceFormatting(_ value: Double) -> String {
-        value.formatted(
-            .currency(code: "USD")
-            .precision(.fractionLength(2))
-        )
+        AccountFormatting.formattedBalance(value, currencyCode: currencyCode)
     }
-    
-    // account number masking
+
     private func maskedAccountNumber(_ accountNumber: String, visibleDigits: Int = 4) -> String {
-        let digitsOnly = accountNumber.filter { $0.isNumber }
-        
-        guard digitsOnly.count > visibleDigits else {
-            return digitsOnly
-        }
-        
-        let lastDigits = digitsOnly.suffix(visibleDigits)
-        return "••••• \(lastDigits)"
+        AccountFormatting.maskedAccountNumber(accountNumber, visibleDigits: visibleDigits)
     }
 }
 

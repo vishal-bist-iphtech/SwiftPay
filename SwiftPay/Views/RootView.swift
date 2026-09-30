@@ -36,15 +36,21 @@ struct RootView: View {
 }
 
 #Preview {
-    
     let context = PersistenceController.preview.container.viewContext
-    RootView()
+    let session = AppSession()
+    let store = AccountStore(context: context, session: session)
+    return RootView()
         .environmentObject(AppRouter())
-        .environmentObject(AppSession())
-        .environmentObject(AuthViewModel(context: PersistenceController.preview.container.viewContext))
-        .environmentObject(DashboardViewModel(context: context))
+        .environmentObject(session)
+        .environmentObject(AuthViewModel(context: context))
+        .environmentObject(DashboardViewModel(store: store, context: context))
+        .environmentObject(TransferViewModel(store: store, session: session))
+        .environmentObject(SpendingViewModel(store: store))
+        .environmentObject(BankDetailsViewModel(store: store))
+        .environmentObject(UserDetailsViewModel(context: context, session: session))
+        .environmentObject(store)
         .environment(
             \.managedObjectContext,
-            PersistenceController.preview.container.viewContext
+            context
         )
 }

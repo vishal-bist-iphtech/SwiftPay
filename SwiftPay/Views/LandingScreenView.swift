@@ -84,7 +84,7 @@ struct LandingScreenView: View {
                         router.screen = .login
                     } label: {
                         
-                        Text("Already have an account?")
+                        Text(AppStrings.lsLoginText)
                             .font(.title3)
                             .fontWeight(.medium)
                             .foregroundStyle(Color("secondaryText"))

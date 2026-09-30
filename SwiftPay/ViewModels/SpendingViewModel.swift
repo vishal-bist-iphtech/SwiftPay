@@ -7,6 +7,14 @@
 
 import Foundation
 import Combine
+import CoreData
+
+/// Card data for the Spending carousel.
+struct SpendingAccountCard: Identifiable, Hashable {
+    let id: String
+    let balance: Double
+    let maskedNumber: String
+}
 
 // One bar = one transaction.
 struct MonthlyTransaction: Identifiable {
@@ -58,6 +66,12 @@ final class SpendingViewModel: ObservableObject {
     @Published var selectedMonth: Int
     @Published var selectedYear: Int
     @Published var totalSpent: Double = 12_345.67
+
+    /// Account cards for the carousel.
+    @Published var accountCards: [SpendingAccountCard] = []
+
+    private let store: AccountStore
+    private var cancellables = Set<AnyCancellable>()
 
     /// All transactions for the month, grouped by day, sorted left -> right.
     @Published var days: [DayGroup] = []
@@ -117,12 +131,46 @@ final class SpendingViewModel: ObservableObject {
         selectedYear = currentYear
     }
 
-    init() {
+    init(store: AccountStore) {
+        self.store = store
+
         let now = Date()
         let cal = Calendar.current
         self.selectedMonth = cal.component(.month, from: now)
         self.selectedYear = cal.component(.year, from: now)
+
+        mapAccounts(store.accounts)
         loadMock()
+
+        store.$accounts
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.mapAccounts($0) }
+            .store(in: &cancellables)
+    }
+
+    /// Reloads the account cards for the current session user.
+    func refresh() {
+        store.refresh()
+    }
+
+    // MARK: - Accounts
+
+    private func mapAccounts(_ accounts: [AccountEntity]) {
+        accountCards = accounts.map { account in
+            let masked: String
+            if let stored = account.maskedNumber, !stored.isEmpty {
+                masked = stored
+            } else if let number = account.accountNumber, !number.isEmpty {
+                masked = AccountFormatting.maskedAccountNumber(number)
+            } else {
+                masked = "••••• ••••"
+            }
+            return SpendingAccountCard(
+                id: (account.id ?? UUID()).uuidString,
+                balance: (account.balance as NSDecimalNumber?)?.doubleValue ?? 0,
+                maskedNumber: masked
+            )
+        }
     }
 
     // MARK: - Mock data

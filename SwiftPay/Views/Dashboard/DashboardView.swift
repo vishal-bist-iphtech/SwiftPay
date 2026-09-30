@@ -9,9 +9,13 @@ import SwiftUI
 import CoreData
 
 struct DashboardView: View {
-        
+
     @EnvironmentObject var session: AppSession
     @EnvironmentObject var viewModel: DashboardViewModel
+    @EnvironmentObject var uservm: UserDetailsViewModel
+    @EnvironmentObject var transferVM: TransferViewModel
+
+    @State private var showTransfer = false
     
     var body: some View {
         
@@ -36,14 +40,14 @@ struct DashboardView: View {
                             NavigationLink {
                                 ProfileView()
                             } label: {
-                                Image("demo_image1")
+                               uservm.profileImage
                                     .resizable()
                                     .scaledToFill()
                                     .font(.system(size: 50))
                                     .foregroundStyle(
                                         Color("primaryText")
                                     )
-                                    .frame(width: 70, height: 70)
+                                    .frame(width: 60, height: 60)
                                     .background(
                                         Color("surface")
                                     )
@@ -51,7 +55,7 @@ struct DashboardView: View {
                             }
                             .buttonStyle(.plain)
                             
-                            VStack(alignment: .leading, spacing: 4) {
+                            VStack(alignment: .leading, spacing: 2) {
                                 Text("Welcome, \(session.currentUser?.name ?? "user")")
                                     .font(.title2.bold())
                                     .foregroundStyle(
@@ -68,11 +72,11 @@ struct DashboardView: View {
                                 
                             } label: {
                                 Image(systemName: "bell.fill")
-                                    .font(.title)
+                                    .font(.title2)
                                     .foregroundStyle(
                                         Color("primaryText")
                                     )
-                                    .frame(width: 50, height: 50)
+                                    .frame(width: 40, height: 40)
                                     .padding(3)
                                     .glassEffect(in: .circle)
                                     .clipShape(Circle())
@@ -82,11 +86,13 @@ struct DashboardView: View {
                         Spacer(minLength: 20)
                         
                         // MARK: Credit card
-                        
+
                         CreditCard(
-                            balance: viewModel.balance,
-                            bank: viewModel.bankName,
-                            maskedNumber: viewModel.maskedAccountNumber
+                            balance: viewModel.primaryBalance,
+                            currencyCode: viewModel.primaryCurrencyCode,
+                            bank: viewModel.primaryBankName,
+                            accountNumber: "",
+                            maskedNumber: viewModel.primaryMaskedNumber
                         )
                         
                     }
@@ -96,23 +102,36 @@ struct DashboardView: View {
                         
                     // MARK: Quick Actions
                     HStack(spacing: 12) {
+
+                        // add account
+                        NavigationLink {
+                            AddAccountView()
+                                .environmentObject(viewModel)
+                        } label: {
+                            QuickAction(
+                                title: "Add account",
+                                icon: "plus"
+                            )
+                        }
+
+                        // transfer money
+                        Button {
+                            transferVM.startNewTransfer()
+                            showTransfer = true
+                        } label: {
+                            QuickAction(
+                                title: "Transfer",
+                                icon: "arrow.up.right"
+                            )
+                        }
                         
-                        QuickAction(
-                            title: "Add account",
-                            icon: "plus"
-                        )
-                        
-                        QuickAction(
-                            title: "Transfer",
-                            icon: "arrow.up.right"
-                        )
-                        
+                        // spending
                         NavigationLink {
                             SpendingView()
                         } label:{
                             QuickAction(
-                                title: "More",
-                                icon: "square.grid.2x2"
+                                title: "Spending",
+                                icon: "chart.line.uptrend.xyaxis"
                             )
                         }
                     }
@@ -132,40 +151,34 @@ struct DashboardView: View {
                     .padding(.top, 20)
                     
                     HStack(spacing: 4) {
-                        
-                        if viewModel.hasContacts {
-                            ForEach(viewModel.contacts.prefix(4)) { contact in
+
+                        ForEach(Contact.all) { contact in
+                            Button {
+                                transferVM.startNewTransfer(recipient: contact)
+                                showTransfer = true
+                            } label: {
                                 RecentTransfer(
                                     name: contact.name,
-                                    icon: "person.fill"
+                                    icon: "person.fill",
+                                    image: contact.imageName
                                 )
                             }
-                            
+                            .buttonStyle(.plain)
+                        }
+
+                        Button {
+                            transferVM.startNewTransfer()
+                            showTransfer = true
+                        } label: {
                             RecentTransfer(
                                 name: "More",
-                                icon: "chevron.down"
+                                icon: "plus",
+                                image: "plus"
                             )
-                        } else {
-                            // Empty state — keeps layout height stable.
-                            VStack(spacing: 4) {
-                                Image(systemName: "person.crop.circle.badge.plus")
-                                    .font(.title)
-                                    .foregroundStyle(Color("mutedText"))
-                                    .frame(width: 70, height: 70)
-                                    .background(Color("surface"))
-                                    .clipShape(Circle())
-                                
-                                Text(AppStrings.emptyStateNoContacts)
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                    .foregroundStyle(Color("mutedText"))
-                            }
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.vertical, 4)
                         }
+                        .buttonStyle(.plain)
                     }
                     .padding(.top, 10)
-                    .animation(.easeInOut(duration: 0.2), value: viewModel.hasContacts)
                     
                     
                     // MARK: Transactions
@@ -200,7 +213,7 @@ struct DashboardView: View {
                                 )
                             }
                         } else {
-                            // Empty state with icon + hint instead of a bare label.
+                            // Empty state with icon + hint
                             VStack(spacing: 8) {
                                 Image(systemName: "tray")
                                     .font(.title)
@@ -227,15 +240,28 @@ struct DashboardView: View {
                 .padding(.horizontal, 20)
             }
             .preferredColorScheme(.dark)
+            .onAppear {
+                viewModel.refresh()
+            }
+            .navigationDestination(isPresented: $showTransfer) {
+                TransferView()
+            }
         }
     }
 }
 
 #Preview {
-    
     let context = PersistenceController.preview.container.viewContext
-    
-    DashboardView()
-        .environmentObject(AppSession())
-        .environmentObject(DashboardViewModel(context: context))
+    let session = AppSession()
+    let store = AccountStore(context: context, session: session)
+    return DashboardView()
+        .environmentObject(session)
+        .environmentObject(DashboardViewModel(store: store, context: context))
+        .environmentObject(TransferViewModel(store: store, session: session))
+        .environmentObject(BankDetailsViewModel(store: store))
+        .environmentObject(UserDetailsViewModel(context: context, session: session))
+        .environment(
+            \.managedObjectContext,
+            context
+        )
 }
