@@ -29,13 +29,8 @@ final class AuthViewModel: ObservableObject {
         phone = ""
         errorMessage = nil
     }
-    private let coreDataService: CoreDataService
-    
-    init(context: NSManagedObjectContext) {
-        self.coreDataService = CoreDataService(
-            context: context
-        )
-    }
+    private let coredata = CoreDataService.shared
+
     
     // phone number normalization into a single format
     private var normalizedPhone: String {
@@ -54,7 +49,7 @@ final class AuthViewModel: ObservableObject {
             return nil
         }
         
-        if let existingUser = coreDataService.fetchUser(
+        if let existingUser = coredata.fetchUser(
             phone: phone
         ) {
             
@@ -93,7 +88,7 @@ final class AuthViewModel: ObservableObject {
         
         do {
             
-            let user = try coreDataService.createUser(
+            let user = try coredata.createUser(
                 phone: phone,
                 name: name,
                 email: email

@@ -43,12 +43,11 @@ final class UserDetailsViewModel: ObservableObject {
         return Image("demo_image1")
     }
 
-    private let service: CoreDataService
+    private let coredata = CoreDataService.shared
     private let session: AppSession
     private var cancellables = Set<AnyCancellable>()
 
-    init(context: NSManagedObjectContext, session: AppSession) {
-        self.service = CoreDataService(context: context)
+    init(session: AppSession) {
         self.session = session
 
         load(for: session.currentUser)
@@ -138,7 +137,7 @@ final class UserDetailsViewModel: ObservableObject {
         defer { isSaving = false }
 
         do {
-            try service.updateUser(
+            try coredata.updateUser(
                 user,
                 name: name,
                 email: email,
