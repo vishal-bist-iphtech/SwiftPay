@@ -34,23 +34,3 @@ struct RootView: View {
         .preferredColorScheme(.dark)
     }
 }
-
-#Preview {
-    let context = PersistenceController.preview.container.viewContext
-    let session = AppSession()
-    let store = AccountStore(context: context, session: session)
-    return RootView()
-        .environmentObject(AppRouter())
-        .environmentObject(session)
-        .environmentObject(AuthViewModel(context: context))
-        .environmentObject(DashboardViewModel(store: store, context: context))
-        .environmentObject(TransferViewModel(store: store, session: session))
-        .environmentObject(SpendingViewModel(store: store))
-        .environmentObject(BankDetailsViewModel(store: store))
-        .environmentObject(UserDetailsViewModel(context: context, session: session))
-        .environmentObject(store)
-        .environment(
-            \.managedObjectContext,
-            context
-        )
-}
