@@ -34,7 +34,7 @@ struct TransferView: View {
                         currencyCode: viewModel.currencyCode,
                         recipient: viewModel.selectedRecipient,
                         onSelectRecipient: {
-                            viewModel.showingContactPicker = true
+                            viewModel.showingAddContact = true
                         }
                     )
 
@@ -66,6 +66,31 @@ struct TransferView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
                     .frame(height: 110)
+
+                    // MARK: Transaction Note
+                    HStack(spacing: 8) {
+
+                        TextField(
+                            "",
+                            text: Binding(
+                                get: { viewModel.noteText },
+                                set: { viewModel.updateNoteText($0) }
+                            ),
+                            prompt: Text("Add a note")
+                                .font(.system(size: 14, weight: .regular))
+                                .foregroundStyle(Color("mutedText").opacity(0.7)),
+                            axis: .vertical
+                        )
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color("primaryText"))
+                        .lineLimit(3)
+                        .disabled(viewModel.isProcessing)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .frame(minHeight: 46)
+                    .background(Color("surface"))
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
 
                     // MARK: Balance / validation messages
                     if !viewModel.hasAccount {
@@ -144,15 +169,13 @@ struct TransferView: View {
                 amount: viewModel.sentAmount,
                 recipientName: viewModel.selectedRecipient?.name
             ) {
-                viewModel.showSuccess = false
+                viewModel.finishSuccess()
             }
         }
-        .sheet(isPresented: $viewModel.showingContactPicker) {
-            ContactPickerSheet(
-                contacts: Contact.all,
-                selected: viewModel.selectedRecipient,
-                onSelect: { viewModel.selectRecipient($0) }
-            )
+        .sheet(isPresented: $viewModel.showingAddContact) {
+            AddContactSheet(onAddContact: { name, phone, image in
+                viewModel.addContact(name: name, phone: phone, image: image)
+            })
             .presentationDetents([.medium])
             .presentationDragIndicator(.visible)
         }
