@@ -200,7 +200,7 @@ struct DashboardView: View {
                             }
                             
 
-                            if viewModel.contacts.count >= 4 {
+                            if viewModel.contacts.count >= 5 {
                                 Button {
                                     guard !isExpanding else {return}
                                     isExpanding = true
