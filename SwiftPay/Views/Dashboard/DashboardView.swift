@@ -15,7 +15,13 @@ struct DashboardView: View {
     @EnvironmentObject var uservm: UserDetailsViewModel
     @EnvironmentObject var transferVM: TransferViewModel
 
-    @State private var showTransfer = false
+    @State private var showTransfer: Bool = false
+    @State private var isExpanded: Bool = false
+    @State private var isExpanding: Bool = false
+    private let columns = Array(
+        repeating: GridItem(.flexible(), spacing: 4),
+        count: 5
+    )
     
     var body: some View {
         
@@ -150,9 +156,9 @@ struct DashboardView: View {
                     }
                     .padding(.top, 20)
                     
-                    HStack(spacing: 4) {
+                    LazyVGrid(columns: columns, spacing: 15) {
 
-                        ForEach(Contact.all) { contact in
+                        ForEach(Contact.all.prefix(isExpanded ? 9 : 4)) { contact in
                             Button {
                                 transferVM.startNewTransfer(recipient: contact)
                                 showTransfer = true
@@ -167,16 +173,24 @@ struct DashboardView: View {
                         }
 
                         Button {
-                            transferVM.startNewTransfer()
-                            showTransfer = true
+                            guard !isExpanding else {return}
+                            isExpanding = true
+                            
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                                isExpanded.toggle()
+                            }
+                            
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                                isExpanding = false
+                            }
                         } label: {
                             RecentTransfer(
-                                name: "More",
-                                icon: "plus",
-                                image: "plus"
+                                name: isExpanded ? "See less" : "See more",
+                                icon: isExpanded ? "chevron.up" :  "chevron.down"
                             )
                         }
                         .buttonStyle(.plain)
+                        .disabled(isExpanding)
                     }
                     .padding(.top, 10)
                     

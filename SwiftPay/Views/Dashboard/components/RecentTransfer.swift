@@ -11,7 +11,8 @@ struct RecentTransfer: View {
     
     let name: String
     let icon: String
-    let image: String
+    var image: String = "person.fill"
+
     
     var body: some View {
         
@@ -19,7 +20,7 @@ struct RecentTransfer: View {
             
             Group {
                 
-                if name == "More" {
+                if name == "See more" || name == "See less" {
                     Image(systemName: icon)
                         .font(.title)
                         .frame(width: 70, height: 70)
