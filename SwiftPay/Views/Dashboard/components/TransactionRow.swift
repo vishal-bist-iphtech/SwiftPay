@@ -45,10 +45,7 @@ struct TransactionRow: View {
             
             Spacer()
             
-            Text(
-                transaction.amount,
-                format: .currency(code: "USD")
-            )
+            Text(AccountFormatting.formattedBalance(transaction.amount, currencyCode: "USD"))
             .font(.title3)
             .fontWeight(.semibold)
             .foregroundStyle(

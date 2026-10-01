@@ -14,8 +14,10 @@ struct DashboardView: View {
     @EnvironmentObject var viewModel: DashboardViewModel
     @EnvironmentObject var uservm: UserDetailsViewModel
     @EnvironmentObject var transferVM: TransferViewModel
+    @EnvironmentObject var transactionVM: TransactionViewModel
 
     @State private var showTransfer: Bool = false
+    @State private var showingAddContact: Bool = false
     @State private var isExpanded: Bool = false
     @State private var isExpanding: Bool = false
     private let columns = Array(
@@ -156,43 +158,92 @@ struct DashboardView: View {
                     }
                     .padding(.top, 20)
                     
-                    LazyVGrid(columns: columns, spacing: 15) {
-
-                        ForEach(Contact.all.prefix(isExpanded ? 9 : 4)) { contact in
+                    if !viewModel.hasContacts {
                             Button {
-                                transferVM.startNewTransfer(recipient: contact)
-                                showTransfer = true
+                                showingAddContact = true
                             } label: {
-                                RecentTransfer(
-                                    name: contact.name,
-                                    icon: "person.fill",
-                                    image: contact.imageName
-                                )
+                                VStack(spacing: 4) {
+                                    Image(systemName: "plus.circle")
+                                        .font(.title)
+                                        .foregroundStyle(Color("mutedText"))
+                                        .frame(width: 70, height: 70)
+                                        .background(Color("surface"))
+                                        .clipShape(Circle())
+                                    Text("Add contact")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                        .foregroundStyle(Color("secondaryText"))
+                                }
+                                .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.plain)
-                        }
-
-                        Button {
-                            guard !isExpanding else {return}
-                            isExpanding = true
-                            
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                                isExpanded.toggle()
-                            }
-                            
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                                isExpanding = false
-                            }
-                        } label: {
-                            RecentTransfer(
-                                name: isExpanded ? "See less" : "See more",
-                                icon: isExpanded ? "chevron.up" :  "chevron.down"
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(isExpanding)
+                        
                     }
-                    .padding(.top, 10)
+                    
+                    if viewModel.hasContacts {
+                        
+                        LazyVGrid(columns: columns, spacing: 15) {
+
+                            
+                            ForEach(viewModel.contacts.prefix(isExpanded ? 9 : 4)) { contact in
+                                Button {
+                                    transferVM.startNewTransfer(recipient: contact)
+                                    showTransfer = true
+                                } label: {
+                                    RecentTransfer(
+                                        name: contact.name,
+                                        icon: "person.fill",
+                                        imageData: contact.imageData
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            
+
+                            if viewModel.contacts.count >= 4 {
+                                Button {
+                                    guard !isExpanding else {return}
+                                    isExpanding = true
+
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                                        isExpanded.toggle()
+                                    }
+
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                                        isExpanding = false
+                                    }
+                                } label: {
+                                    RecentTransfer(
+                                        name: isExpanded ? "See less" : "See more",
+                                        icon: isExpanded ? "chevron.up" :  "chevron.down"
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(isExpanding)
+                            } else {
+                                Button {
+                                    showingAddContact = true
+                                } label: {
+                                    VStack(spacing: 4) {
+                                        Image(systemName: "plus.circle")
+                                            .font(.title)
+                                            .foregroundStyle(Color("mutedText"))
+                                            .frame(width: 70, height: 70)
+                                            .background(Color("surface"))
+                                            .clipShape(Circle())
+                                        Text("Add contact")
+                                            .font(.subheadline)
+                                            .fontWeight(.medium)
+                                            .foregroundStyle(Color("secondaryText"))
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            
+                        }
+                        .padding(.top, 10)
+                    }
+                    
                     
                     
                     // MARK: Transactions
@@ -268,6 +319,24 @@ struct DashboardView: View {
             .navigationDestination(isPresented: $showTransfer) {
                 TransferView()
             }
+            .sheet(isPresented: $showingAddContact) {
+                AddContactSheet(onAddContact: { name, phone, image in
+                    transferVM.addContact(name: name, phone: phone, image: image)
+                })
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+            }
+            // After the success animation, push the new transfer's details on the
+            .navigationDestination(item: $transferVM.completedTransaction) { transaction in
+                TransactionDetailsView(transaction: transaction)
+            }
+            .onChange(of: transferVM.completedTransaction) { _, newValue in
+                guard newValue != nil else { return }
+                // Refresh so Edit/Delete resolve the new entity, then pop the
+                // transfer screen so the stack becomes [details] on dashboard.
+                transactionVM.refresh()
+                showTransfer = false
+            }
         }
     }
 }
@@ -280,6 +349,7 @@ struct DashboardView: View {
         .environmentObject(session)
         .environmentObject(DashboardViewModel(store: store))
         .environmentObject(TransferViewModel(store: store, session: session))
+        .environmentObject(TransactionViewModel(session: session, store: store))
         .environmentObject(BankDetailsViewModel(store: store))
         .environmentObject(UserDetailsViewModel(session: session))
         .environment(
