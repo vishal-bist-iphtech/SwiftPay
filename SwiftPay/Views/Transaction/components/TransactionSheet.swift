@@ -17,7 +17,7 @@ struct TransactionSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var title = ""
-    @State private var category = "Dining"
+    @State private var category = "Food"
     @State private var amountText = ""
     @State private var isIncome = false
     @State private var date = Date()
@@ -32,10 +32,16 @@ struct TransactionSheet: View {
         "Subscription", "Transport", "Income", "Money Transfer", "Others"
     ]
 
-    /// Contacts for Paid-To suggestions (tap fills the field, custom text still allowed).
-    private var contacts: [Contact] { Contact.all }
 
-    /// Bank accounts for Paid-With suggestions (tap fills the field, custom text still allowed).
+    private var pickerCategories: [String] {
+        if category.isEmpty || categories.contains(category) { return categories }
+        return categories + [category]
+    }
+
+    /// Saved contacts for Paid-To suggestions
+    private var contacts: [Contact] { viewModel.contactSuggestions() }
+
+    /// Bank accounts for Paid-With suggestions 
     private var accountOptions: [String] { viewModel.accountSuggestions() }
 
     var body: some View {
@@ -44,7 +50,7 @@ struct TransactionSheet: View {
                 Section("Details") {
                     TextField("Title (e.g. Breakfast, taxi fare)", text: $title)
                     Picker("Category", selection: $category) {
-                        ForEach(categories, id: \.self) { Text($0).tag($0) }
+                        ForEach(pickerCategories, id: \.self) { Text($0).tag($0) }
                     }
                     TextField("Amount", text: $amountText)
                         .keyboardType(.decimalPad)
@@ -67,11 +73,21 @@ struct TransactionSheet: View {
                                         paidTo = contact.name
                                     } label: {
                                         HStack(spacing: 6) {
-                                            Image(contact.imageName)
-                                                .resizable()
-                                                .scaledToFill()
-                                                .frame(width: 24, height: 24)
-                                                .clipShape(Circle())
+                                            if let imageData = contact.imageData,
+                                               let uiImage = UIImage(data: imageData) {
+                                                Image(uiImage: uiImage)
+                                                    .resizable()
+                                                    .scaledToFill()
+                                                    .frame(width: 24, height: 24)
+                                                    .clipShape(Circle())
+                                            } else {
+                                                Text(contact.initials)
+                                                    .font(.system(size: 9, weight: .semibold))
+                                                    .foregroundStyle(.white)
+                                                    .frame(width: 24, height: 24)
+                                                    .background(Color(red: 0.95, green: 0.45, blue: 0.2).opacity(0.8))
+                                                    .clipShape(Circle())
+                                            }
                                             Text(contact.name)
                                                 .font(.subheadline)
                                         }
@@ -170,7 +186,7 @@ struct TransactionSheet: View {
             .onAppear {
                 if let tx = transaction {
                     title = tx.title
-                    category = tx.category
+                    category = tx.category.isEmpty ? "Others" : tx.category
                     amountText = String(tx.amount)
                     isIncome = tx.isIncome
                     date = tx.date
