@@ -71,7 +71,7 @@ final class TransactionViewModel: ObservableObject {
     }
 
     var monthlySpendingText: String {
-        monthlySpending.formatted(.currency(code: "USD"))
+        AccountFormatting.formattedBalance(monthlySpending, currencyCode: "USD")
     }
 
     /// Unique categories for the filter sheet, sorted.
@@ -292,9 +292,14 @@ final class TransactionViewModel: ObservableObject {
         return "\(bank) · \(last4)"
     }
 
+    /// Saved contacts for the Paid-To suggestions, most recent first.
+    func contactSuggestions() -> [Contact] {
+        guard let user = currentUser() else { return [] }
+        return coredata.fetchContacts(for: user).map(Contact.init(entity:))
+    }
+
     /// Bank account suggestions for the Paid-With field
-    func accountSuggestions() -> [String] {
-        guard let store else { return [] }
+    func accountSuggestions() -> [String] {        guard let store else { return [] }
         return store.accounts.compactMap { account in
             let bank = (account.bankName?.isEmpty == false) ? account.bankName! : nil
             let masked = account.maskedNumber ?? ""
@@ -341,8 +346,8 @@ final class TransactionViewModel: ObservableObject {
         let category = (entity.category?.isEmpty == false) ? entity.category! : "Others"
         let isIncome = entity.isIncome
         let amount: Double = {
-            if let n = entity.amount as? NSDecimalNumber { return n.doubleValue }
-            if let n = entity.amount as? NSNumber { return n.doubleValue }
+            if let n = entity.amount { return n.doubleValue }
+            if let n = entity.amount { return n.doubleValue }
             return 0
         }()
         return Transaction(
@@ -458,13 +463,12 @@ final class TransactionViewModel: ObservableObject {
 
 enum TransactionFormat {
     static func amountText(_ tx: Transaction) -> String {
-        let formatted = tx.amount.formatted(.currency(code: "USD"))
+        let formatted = AccountFormatting.formattedBalance(tx.amount, currencyCode: "USD")
         return tx.isIncome ? "+\(formatted)" : "-\(formatted)"
     }
 
     static func sectionTotalText(_ total: Double) -> String {
-        
-        let abs = abs(total).formatted(.currency(code: "USD"))
+        let abs = AccountFormatting.formattedBalance(abs(total), currencyCode: "USD")
         if total > 0 { return "+\(abs)" }
         if total < 0 { return "-\(abs)" }
         return abs
