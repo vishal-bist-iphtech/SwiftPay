@@ -217,7 +217,7 @@ struct UserDetailsView: View {
     let session = AppSession()
     return NavigationStack {
         UserDetailsView()
-            .environmentObject(UserDetailsViewModel(context: context, session: session))
+            .environmentObject(UserDetailsViewModel(session: session))
             .environment(\.managedObjectContext, context)
     }
     .preferredColorScheme(.dark)

@@ -115,7 +115,7 @@ struct LoginView: View {
     LoginView()
         .environmentObject(AppRouter())
         .environmentObject(AppSession())
-        .environmentObject(AuthViewModel(context: PersistenceController.preview.container.viewContext))
+        .environmentObject(AuthViewModel())
         .environment(
             \.managedObjectContext,
             PersistenceController.preview.container.viewContext

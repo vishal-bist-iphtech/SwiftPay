@@ -194,23 +194,31 @@ struct DashboardView: View {
                         
                         Spacer()
                         
-                        Text("See all")
-                            .font(.headline)
-                            .fontWeight(.medium)
-                            .foregroundStyle(
-                                Color("mutedText")
-                            )
+                        NavigationLink {
+                            TransactionView()
+                        } label: {
+                            Text("See all")
+                                .font(.headline)
+                                .fontWeight(.medium)
+                                .foregroundStyle(
+                                    Color("mutedText")
+                                )
+                        }
                     }
                     .padding(.top, 20)
                     
                     VStack(spacing: 12) {
                         
                         if viewModel.hasTransactions {
-                            ForEach(viewModel.transactions) { transaction in
+                            ForEach(viewModel.recentTransactions) { transaction in
                                 
-                                TransactionRow(
-                                    transaction: transaction
-                                )
+                                NavigationLink {
+                                    TransactionDetailsView(transaction: transaction)
+                                } label: {
+                                    TransactionRow(
+                                        transaction: transaction
+                                    )
+                                }
                             }
                         } else {
                             // Empty state with icon + hint
@@ -256,10 +264,10 @@ struct DashboardView: View {
     let store = AccountStore(context: context, session: session)
     return DashboardView()
         .environmentObject(session)
-        .environmentObject(DashboardViewModel(store: store, context: context))
+        .environmentObject(DashboardViewModel(store: store))
         .environmentObject(TransferViewModel(store: store, session: session))
         .environmentObject(BankDetailsViewModel(store: store))
-        .environmentObject(UserDetailsViewModel(context: context, session: session))
+        .environmentObject(UserDetailsViewModel(session: session))
         .environment(
             \.managedObjectContext,
             context

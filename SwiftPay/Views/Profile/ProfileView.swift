@@ -253,8 +253,8 @@ struct ProfileView: View {
     }
     .environmentObject(session)
     .environmentObject(AppRouter())
-    .environmentObject(AuthViewModel(context: context))
+    .environmentObject(AuthViewModel())
     .environmentObject(BankDetailsViewModel(store: store))
-    .environmentObject(UserDetailsViewModel(context: context, session: session))
+    .environmentObject(UserDetailsViewModel(session: session))
     .environment(\.managedObjectContext, context)
 }

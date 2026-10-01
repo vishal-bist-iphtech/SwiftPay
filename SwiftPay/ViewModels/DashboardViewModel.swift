@@ -12,7 +12,7 @@ import CoreData
 
 final class DashboardViewModel: ObservableObject {
 
-    private let service: CoreDataService
+    private let coredata = CoreDataService.shared
     private let store: AccountStore
     private var cancellables = Set<AnyCancellable>()
     private var isObserving = false
@@ -28,9 +28,8 @@ final class DashboardViewModel: ObservableObject {
     @Published var transactions: [Transaction] = []
 
 
-    init(store: AccountStore, context: NSManagedObjectContext) {
+    init(store: AccountStore) {
         self.store = store
-        self.service = CoreDataService(context: context)
 
         mapAccounts(store.accounts)
         mapTransactions(store.transactions)
@@ -50,6 +49,9 @@ final class DashboardViewModel: ObservableObject {
     // MARK: - Computed
     var hasTransactions: Bool { !transactions.isEmpty }
     var hasContacts: Bool { !contacts.isEmpty }
+
+    /// Recent 5 transactions for the dashboard
+    var recentTransactions: [Transaction] { Array(transactions.prefix(5)) }
     
     
     let Banks = [
@@ -92,7 +94,7 @@ final class DashboardViewModel: ObservableObject {
             return
         }
 
-        if let account = service.fetchPrimaryAccount(for: user) {
+        if let account = coredata.fetchPrimaryAccount(for: user) {
             hasPrimaryAccount = true
             primaryBalance = Self.doubleValue(account.balance)
             primaryBankName = account.bankName ?? ""
@@ -105,7 +107,7 @@ final class DashboardViewModel: ObservableObject {
             primaryMaskedNumber = ""
         }
 
-        transactions = service.fetchTransactions(for: user).map { entity in
+        transactions = coredata.fetchTransactions(for: user).map { entity in
             let title = entity.title ?? ""
             let category = entity.category ?? ""
             let isIncome = entity.isIncome
@@ -114,13 +116,12 @@ final class DashboardViewModel: ObservableObject {
                 title: title,
                 category: category,
                 amount: Self.doubleValue(entity.amount),
-                icon: Self.icon(category: category, title: title, isIncome: isIncome),
                 isIncome: isIncome,
                 date: entity.date ?? Date()
             )
         }
 
-        contacts = service.fetchContacts(for: user).map { entity in
+        contacts = coredata.fetchContacts(for: user).map { entity in
             ContactItem(
                 id: entity.id ?? UUID(),
                 name: entity.name ?? ""
@@ -137,30 +138,6 @@ final class DashboardViewModel: ObservableObject {
         hasPrimaryAccount = false
         transactions = []
         contacts = []
-    }
-
-    /// SF Symbol for transaction category.
-    static func icon(category: String, title: String, isIncome: Bool) -> String {
-        if isIncome { return "building.2.fill" }
-
-        switch category.lowercased() {
-        case "entertainment":
-            return "play.rectangle.fill"
-        case "transport":
-            return "car.fill"
-        case "food", "foodstuff":
-            return "fork.knife"
-        case "subscriptions":
-            return "repeat"
-        case "bills":
-            return "receipt"
-        case "shopping":
-            return "cart"
-        case "others":
-            return "ellipsis"
-        default:
-            return "circle.fill"
-        }
     }
 
     // MARK: ----------------- Helpers -------------------------
@@ -218,7 +195,6 @@ final class DashboardViewModel: ObservableObject {
                 title: entity.title ?? "",
                 category: entity.category ?? "Transfer",
                 amount: (entity.amount as NSDecimalNumber?)?.doubleValue ?? 0,
-                icon: entity.isIncome ? "arrow.down.left" : "arrow.up.right",
                 isIncome: entity.isIncome,
                 date: entity.date ?? Date()
             )
