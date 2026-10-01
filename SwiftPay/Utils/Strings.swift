@@ -36,6 +36,8 @@ enum AppStrings {
     
     /// confimation message
     static let logoutMessage = "Are you sure you want to logout?"
+    static let deleteAccountMessage = "This will permanently delete your account, linked bank accounts, contacts and transaction history. This cannot be undone."
+    static let deleteAccountFailed = "Could not delete your account. Please try again."
     
     // MARK: Add Account Screen
     static let aaHeading = "Connect your money"

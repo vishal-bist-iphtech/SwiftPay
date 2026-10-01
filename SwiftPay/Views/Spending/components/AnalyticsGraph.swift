@@ -72,15 +72,22 @@ struct AnalyticsGraph: View {
         return bars + gaps
     }
 
-    private var chartWidth: CGFloat {
-        CGFloat(totalUnits + edgePaddingUnits * 2) * barWidth
+    private func chartWidth(screenWidth: CGFloat) -> CGFloat {
+        max(CGFloat(totalUnits + edgePaddingUnits * 2) * barWidth, screenWidth)
     }
 
     /// X domain padded by half a unit so edge bars are fully visible, not clipped.
     private var xDomain: ClosedRange<Double> {
+        // Guard against empty months (totalUnits == 0) which would produce an invalid 0-length domain.
+        let safeUnits = max(totalUnits, 1)
         let lower = -Double(edgePaddingUnits) - 0.5
-        let upper = Double(totalUnits + edgePaddingUnits) - 0.5
+        let upper = Double(safeUnits + edgePaddingUnits) - 0.5
         return lower...upper
+    }
+
+    /// Y domain with a minimum upper bound so an empty ($0) month doesn't crash Charts.
+    private var yDomain: ClosedRange<Double> {
+        0...(max(viewModel.maxAmount * 1.14, 1))
     }
 
 
@@ -109,21 +116,38 @@ struct AnalyticsGraph: View {
     }
 
     var body: some View {
-       
-        
-        ZStack(alignment: .topTrailing) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                chart
-                    .frame(width: chartWidth, height: chartHeight)
-                    .padding(.bottom, 24)
-            }
+        if viewModel.days.isEmpty {
+            emptyState
+                .frame(height: chartHeight + 24)
+        } else {
+            ZStack(alignment: .topTrailing) {
+                GeometryReader { geo in
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        chart
+                            .frame(width: chartWidth(screenWidth: geo.size.width), height: chartHeight)
+                            .padding(.bottom, 24)
+                    }
+                }
 
-            if viewModel.maxAmount > 0 {
-                amountBadge
-                    .allowsHitTesting(false)
+                if viewModel.maxAmount > 0 {
+                    amountBadge
+                        .allowsHitTesting(false)
+                }
             }
+            .frame(height: chartHeight + 24)
         }
-        .frame(height: chartHeight + 24)
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "chart.bar.xaxis")
+                .font(.system(size: 22))
+                .foregroundStyle(Color("mutedText"))
+            Text(AppStrings.emptyStateNoTransactions)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(Color("mutedText"))
+        }
+        .frame(maxWidth: .infinity)
     }
 
     // display amount for the selected bar.
@@ -138,7 +162,7 @@ struct AnalyticsGraph: View {
 
 
     private var amountBadge: some View {
-        Text(displayedAmount.formatted(.currency(code: "USD")))
+        Text(AccountFormatting.formattedBalance(displayedAmount, currencyCode: "USD"))
             .font(.subheadline)
             .fontWeight(.medium)
             .foregroundStyle(Color("secondaryText"))
@@ -158,7 +182,7 @@ struct AnalyticsGraph: View {
         .chartLegend(.hidden)
         .chartYAxis(.hidden)
         .chartXAxis(.hidden)
-        .chartYScale(domain: 0...(viewModel.maxAmount * 1.14))
+        .chartYScale(domain: yDomain)
         .chartXScale(domain: xDomain)
         .chartOverlay { proxy in
             overlay(proxy: proxy)
@@ -294,7 +318,7 @@ struct AnalyticsGraph: View {
         if let selected = selectedBar,
            let dayIndex = viewModel.days.firstIndex(where: { $0.day == selected.day }),
            let xPos = proxy.position(forX: dayCenterUnit(dayIndex: dayIndex)) {
-            Text("\(selected.day) sep")
+            Text("\(selected.day) \(viewModel.selectedMonthAbbreviation)")
                 .font(.caption2)
                 .fontWeight(.medium)
                 .foregroundStyle(Color("primaryText"))

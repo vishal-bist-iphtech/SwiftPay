@@ -63,7 +63,7 @@ struct TransferCard: View {
                     // toggles to balance + Hide once revealed.
                     if isBalanceVisible {
                         HStack(alignment: .firstTextBaseline, spacing: 4) {
-                            Text(balanceFormatting(balance))
+                            Text(AccountFormatting.formattedBalance(balance, currencyCode: currencyCode))
                                 .font(.title3)
                                 .fontWeight(.semibold)
                                 .foregroundStyle(.white)
@@ -141,15 +141,29 @@ struct TransferCard: View {
                         Spacer()
 
                         if let recipient {
-                            Image(recipient.imageName)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 50, height: 50)
-                                .clipShape(Circle())
-                                .overlay(
-                                    Circle().stroke(Color("mutedText"), lineWidth: 1)
-                                )
-                                .offset(y: 10)
+                            if let imageData = recipient.imageData,
+                               let uiImage = UIImage(data: imageData) {
+                                Image(uiImage: uiImage)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 50, height: 50)
+                                    .clipShape(Circle())
+                                    .overlay(
+                                        Circle().stroke(Color("mutedText"), lineWidth: 1)
+                                    )
+                                    .offset(y: 10)
+                            } else {
+                                Text(recipient.initials)
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundStyle(.white)
+                                    .frame(width: 50, height: 50)
+                                    .background(Color(red: 0.95, green: 0.45, blue: 0.2).opacity(0.8))
+                                    .clipShape(Circle())
+                                    .overlay(
+                                        Circle().stroke(Color("mutedText"), lineWidth: 1)
+                                    )
+                                    .offset(y: 10)
+                            }
                         } else {
                             Image(systemName: "plus.circle.dashed")
                                 .font(.system(size: 40))
@@ -169,7 +183,7 @@ struct TransferCard: View {
                                 .foregroundStyle(.white.opacity(0.85))
                                 .lineLimit(1)
 
-                            Text(recipient.phone)
+                            Text(recipient.phone.isEmpty ? "—" : recipient.phone)
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
                                 .foregroundStyle(
@@ -217,11 +231,6 @@ struct TransferCard: View {
             .buttonStyle(.plain)
         }
     }
-
-    // formatting the balance with currency code
-    private func balanceFormatting(_ value: Double) -> String {
-        AccountFormatting.formattedBalance(value, currencyCode: currencyCode)
-    }
 }
 
 #Preview {
@@ -231,7 +240,7 @@ struct TransferCard: View {
 
         VStack(spacing: 16) {
             TransferCard()
-            TransferCard(recipient: .olivia)
+            TransferCard(recipient: Contact(name: "Olivia", phone: "+91 1234567899"))
         }
         .padding()
     }

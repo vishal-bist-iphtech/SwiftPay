@@ -9,11 +9,12 @@ import Foundation
 import Combine
 import CoreData
 
-/// Single shared source for account + transaction entities.
+/// Single shared source for account + transaction + contact entities.
 final class AccountStore: ObservableObject {
 
     @Published private(set) var accounts: [AccountEntity] = []
     @Published private(set) var transactions: [TransactionEntity] = []
+    @Published private(set) var contacts: [ContactEntity] = []
 
     private let context: NSManagedObjectContext
     private let session: AppSession
@@ -34,29 +35,34 @@ final class AccountStore: ObservableObject {
             .store(in: &cancellables)
     }
 
-    /// Re-runs the single shared fetch (accounts + transactions).
+    /// Re-runs the single shared fetch (accounts + transactions + contacts).
     func refresh() {
         reload()
     }
 
     /// Commits a transfer and refetches once so all observers update.
+    /// Returns the created transaction entity for details navigation.
+    @discardableResult
     func applyMoneyTransfer(
         amount: Double,
         from account: AccountEntity,
-        recipientName: String
-    ) throws {
+        recipientName: String,
+        note: String = ""
+    ) throws -> TransactionEntity {
         
         guard let user = getUser(),
               let account = CoreDataService(context: context).fetchAccount(id: account.id!),
               account.owner?.id == user.id else {
-            return
+            throw CoreDataService.ValidationError.noAccount
         }
-        try CoreDataService(context: context).MoneyTransferSuccess(
+        let created = try CoreDataService(context: context).MoneyTransferSuccess(
             amount: amount,
             from: account,
-            recipientName: recipientName
+            recipientName: recipientName,
+            note: note
         )
         reload()
+        return created
     }
 
 
@@ -95,6 +101,7 @@ final class AccountStore: ObservableObject {
         guard let user = getUser() else {
             accounts = []
             transactions = []
+            contacts = []
             return
         }
 
@@ -106,9 +113,14 @@ final class AccountStore: ObservableObject {
         transactionRequest.predicate = NSPredicate(format: "owner == %@", user)
         transactionRequest.sortDescriptors = [NSSortDescriptor(keyPath: \TransactionEntity.date, ascending: false)]
 
+        let contactRequest: NSFetchRequest<ContactEntity> = ContactEntity.fetchRequest()
+        contactRequest.predicate = NSPredicate(format: "owner == %@", user)
+        contactRequest.sortDescriptors = [NSSortDescriptor(keyPath: \ContactEntity.lastTransactionAt, ascending: false)]
+
         do {
             accounts = try context.fetch(accountRequest)
             transactions = try context.fetch(transactionRequest)
+            contacts = try context.fetch(contactRequest)
         } catch {
             print("Failed to reload accounts:", error.localizedDescription)
         }

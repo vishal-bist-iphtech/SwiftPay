@@ -19,6 +19,7 @@
         <attribute name="lastTransactionAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="name" optional="YES" attributeType="String"/>
         <attribute name="phone" optional="YES" attributeType="String"/>
+        <attribute name="profileImage" optional="YES" attributeType="Binary"/>
         <attribute name="upiID" optional="YES" attributeType="String"/>
         <relationship name="owner" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="UserEntity" inverseName="contacts" inverseEntity="UserEntity"/>
         <relationship name="transactions" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="TransactionEntity" inverseName="recipient" inverseEntity="TransactionEntity"/>

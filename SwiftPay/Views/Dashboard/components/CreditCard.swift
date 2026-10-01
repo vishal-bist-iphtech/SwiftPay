@@ -54,11 +54,11 @@ struct CreditCard: View {
                 
                 // MARK: Middle row
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    
+
                     Text(
                         isBalanceVisible
-                        ? balanceFormatting(balance)
-                        : "xxxx"
+                        ? AccountFormatting.formattedBalance(balance, currencyCode: currencyCode)
+                        : AccountFormatting.hiddenBalanceText
                     )
                     .font(.system(size: 30, weight: .bold))
                     .foregroundStyle(.white)
@@ -187,14 +187,6 @@ struct CreditCard: View {
                     .offset(x: 58, y: 58)
             }
         }
-    }
-
-    private func balanceFormatting(_ value: Double) -> String {
-        AccountFormatting.formattedBalance(value, currencyCode: currencyCode)
-    }
-
-    private func maskedAccountNumber(_ accountNumber: String, visibleDigits: Int = 4) -> String {
-        AccountFormatting.maskedAccountNumber(accountNumber, visibleDigits: visibleDigits)
     }
 }
 

@@ -13,7 +13,13 @@ import CoreData
 struct SpendingAccountCard: Identifiable, Hashable {
     let id: String
     let balance: Double
+    let currencyCode: String
     let maskedNumber: String
+
+    /// Single balance formatter, provided by the ViewModel.
+    var formattedBalance: String {
+        AccountFormatting.formattedBalance(balance, currencyCode: currencyCode)
+    }
 }
 
 // One bar = one transaction.
@@ -30,7 +36,7 @@ struct MonthlyTransaction: Identifiable {
 struct DayGroup: Identifiable {
     let id: Int              // day of month, unique within the month
     let day: Int
-    let transactions: [MonthlyTransaction]
+    var transactions: [MonthlyTransaction]
 
     var totalAmount: Double {
         transactions.reduce(0) { $0 + $1.amount }
@@ -65,7 +71,7 @@ final class SpendingViewModel: ObservableObject {
     
     @Published var selectedMonth: Int
     @Published var selectedYear: Int
-    @Published var totalSpent: Double = 12_345.67
+    @Published var totalSpent: Double = 0
 
     /// Account cards for the carousel.
     @Published var accountCards: [SpendingAccountCard] = []
@@ -87,6 +93,11 @@ final class SpendingViewModel: ObservableObject {
         case .lowest:
             return categories.sorted { $0.totalAmount < $1.totalAmount }
         }
+    }
+
+    /// Monthly spending total always goes through `AccountFormatting.formattedBalance`.
+    var formattedTotalSpent: String {
+        AccountFormatting.formattedBalance(totalSpent, currencyCode: "USD")
     }
 
     /// Highest transaction of the month.
@@ -119,6 +130,13 @@ final class SpendingViewModel: ObservableObject {
         return fmt.string(from: date)
     }
 
+    /// Short month name for the selected month, e.g. "Sep". Used for graph labels.
+    var selectedMonthAbbreviation: String {
+        let symbols = Calendar.current.shortMonthSymbols
+        guard selectedMonth >= 1, selectedMonth <= symbols.count else { return "" }
+        return symbols[selectedMonth - 1]
+    }
+
     /// Only months of the current year.
     func isMonthSelectable(_ month: Int) -> Bool {
         month >= 1 && month <= 12 && month <= currentMonth
@@ -140,11 +158,33 @@ final class SpendingViewModel: ObservableObject {
         self.selectedYear = cal.component(.year, from: now)
 
         mapAccounts(store.accounts)
-        loadMock()
+        rebuild(from: store.transactions)
 
         store.$accounts
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.mapAccounts($0) }
+            .store(in: &cancellables)
+
+        // Rebuild whenever transactions or the selected month/year change.
+        store.$transactions
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.rebuild(from: $0) }
+            .store(in: &cancellables)
+
+        $selectedMonth
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.rebuild(from: self.store.transactions)
+            }
+            .store(in: &cancellables)
+
+        $selectedYear
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.rebuild(from: self.store.transactions)
+            }
             .store(in: &cancellables)
     }
 
@@ -168,83 +208,120 @@ final class SpendingViewModel: ObservableObject {
             return SpendingAccountCard(
                 id: (account.id ?? UUID()).uuidString,
                 balance: (account.balance as NSDecimalNumber?)?.doubleValue ?? 0,
+                currencyCode: account.currencyCode ?? "USD",
                 maskedNumber: masked
             )
         }
     }
 
-    // MARK: - Mock data
+    /// Rebuilds total, daily groups and categories from expense transactions
+    /// of the selected month/year.
+    private func rebuild(from entities: [TransactionEntity]) {
+        let cal = Calendar.current
 
-    private func loadMock() {
-        // (day, amount) — flat, exactly as it would come from a service.
-        let raw: [(day: Int, amount: Double)] = [
-            (1, 5_620),(2, 3_450), (3, 8_852.65),(3, 4_852.65), (4, 6_890),
-            (6, 3_410), (6, 4_210),                       // two transactions on day 6
-            (7, 2_980), (7, 5_340),                       // two transactions on day 7
-            (8, 3_760), (9, 1_890), (10, 3_540), (11, 1_320),
-            (12, 3_980), (13, 2_140), (14, 3_690),
-            (15, 1_150), (16, 4_480), (17, 3_760),
-            (21, 2_390), (21, 6_560),                     // two transactions on day 21
-            (22, 7_520), (23, 3_380), (24, 6_690), (25, 6_290),
-            (26, 4_810), (27, 3_440), (28, 2_610), (29, 5_350),
-        ]
+        // Expenses only, matching the selected month + year.
+        let monthExpenses: [(date: Date, amount: Double, category: String)] = entities.compactMap { entity in
+            guard !entity.isIncome else { return nil }
+            guard let date = entity.date else { return nil }
+            let comps = cal.dateComponents([.year, .month], from: date)
+            guard comps.year == selectedYear, comps.month == selectedMonth else { return nil }
+            let amount: Double = {
+                if let n = entity.amount { return n.doubleValue }
+                if let n = entity.amount { return n.doubleValue }
+                return 0
+            }()
+            guard amount > 0 else { return nil }
+            let rawCategory = (entity.category ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            let category = rawCategory.isEmpty ? "Others" : rawCategory
+            return (date: date, amount: amount, category: category)
+        }
 
-        // Find the month's max so we can flag it.
-        let maxValue = raw.map(\.amount).max() ?? 0
+        // MARK: Total monthly spending
+        totalSpent = monthExpenses.reduce(0) { $0 + $1.amount }
 
-        // Group by day.
-        let grouped = Dictionary(grouping: raw, by: \.day)
+        // MARK: Daily groups — one bar = one transaction, left -> right chronological.
+        let maxValue = monthExpenses.map(\.amount).max() ?? 0
+        let groupedByDay = Dictionary(grouping: monthExpenses) { entry in
+            cal.component(.day, from: entry.date)
+        }
+        var builtDays = groupedByDay
             .map { day, entries -> DayGroup in
-                let transactions = entries.enumerated().map { idx, entry in
+                // Chronological within the day so bars read left -> right in time order.
+                let sorted = entries.sorted { $0.date < $1.date }
+                let transactions = sorted.enumerated().map { idx, entry in
                     MonthlyTransaction(
                         indexInDay: idx,
                         amount: entry.amount,
-                        isMonthMax: entry.amount == maxValue
+                        isMonthMax: false
                     )
                 }
                 return DayGroup(id: day, day: day, transactions: transactions)
             }
             .sorted { $0.day < $1.day }
 
-        self.days = grouped
+        // Highlight only the single earliest max transaction: days are sorted
+        // ascending and bars within a day are chronological, so the first max
+        // encountered wins ties on amount by date/time.
+        if maxValue > 0 {
+            dayLoop: for dayIndex in builtDays.indices {
+                for txIndex in builtDays[dayIndex].transactions.indices {
+                    if builtDays[dayIndex].transactions[txIndex].amount == maxValue {
+                        builtDays[dayIndex].transactions[txIndex].isMonthMax = true
+                        break dayLoop
+                    }
+                }
+            }
+        }
+        days = builtDays
 
-        self.categories = [
-            
-            TransactionCategory(
-                title: "Food",
-                transactionCount: 75,
-                totalAmount: 4_442.85,
-                icon: "fork.knife"
-            ),
-            TransactionCategory(
-                title: "Transport",
-                transactionCount: 55,
-                totalAmount: 1_650.00,
-                icon: "bus.fill"
-            ),
-            TransactionCategory(
-                title: "Subscriptions",
-                transactionCount: 2,
-                totalAmount: 860.00,
-                icon: "repeat"
-            ),
-            TransactionCategory(
-                title: "Bills",
-                transactionCount: 4,
-                totalAmount: 1_860.00, icon: "receipt"
-            ),
-            TransactionCategory(
-                title: "Shopping",
-                transactionCount: 6,
-                totalAmount: 3_860.00, icon: "cart"
-            ),
-            TransactionCategory(
-                title: "Others",
-                transactionCount: 6,
-                totalAmount: 1_360.00, icon: "ellipsis"
-            ),
+        // MARK: Category analytics — grouped case-insensitively, display preserves first casing.
+        var firstCasing: [String: String] = [:] // key: lowercased -> display title
+        var totals: [String: Double] = [:]
+        var counts: [String: Int] = [:]
+        for entry in monthExpenses {
+            let key = entry.category.lowercased()
+            if firstCasing[key] == nil {
+                firstCasing[key] = entry.category
+            }
+            totals[key, default: 0] += entry.amount
+            counts[key, default: 0] += 1
+        }
+        categories = totals.map { key, total in
+            let display = firstCasing[key] ?? "Others"
+            return TransactionCategory(
+                title: display,
+                transactionCount: counts[key] ?? 0,
+                totalAmount: total,
+                icon: Self.icon(for: display)
+            )
+        }
+        .sorted { $0.totalAmount > $1.totalAmount }
+    }
 
-        ]
+    /// SF Symbol per category (matches existing Analytics row style).
+    private static func icon(for category: String) -> String {
+        switch category.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "food":
+            return "fork.knife"
+        case "grocery":
+            return "cart"
+        case "shopping":
+            return "cart"
+        case "transport", "travel":
+            return "bus.fill"
+        case "subscription", "subscriptions":
+            return "repeat"
+        case "bills", "bill", "utilities", "utility":
+            return "receipt"
+        case "entertainment":
+            return "play.rectangle.fill"
+        case "health":
+            return "cross.fill"
+        case "money transfer", "transfer":
+            return "arrow.up.right"
+        default:
+            return "ellipsis"
+        }
     }
     
 }

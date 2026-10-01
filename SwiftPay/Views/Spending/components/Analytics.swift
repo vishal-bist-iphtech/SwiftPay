@@ -90,8 +90,25 @@ struct Analytics: View {
             // MARK: Category rows
             
             VStack(spacing: 14) {
-                ForEach(viewModel.filteredCategories) { category in
-                    CategoryRow(category: category)
+                if viewModel.filteredCategories.isEmpty {
+                    VStack(spacing: 8) {
+                        Image(systemName: "tray")
+                            .font(.system(size: 22))
+                            .foregroundStyle(Color("mutedText"))
+                        Text(AppStrings.emptyStateNoTransactions)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Color("primaryText"))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+                } else {
+                    ForEach(viewModel.filteredCategories) { category in
+                        NavigationLink {
+                            TransactionView()
+                        } label: {
+                            CategoryRow(category: category)
+                        }
+                    }
                 }
             }
             .padding(.horizontal, 20)
@@ -99,7 +116,7 @@ struct Analytics: View {
             .padding(.bottom, 30)
             .animation(.easeInOut(duration: 0.2), value: viewModel.priceFilter)
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color("surface"))
         .clipShape(
             RoundedRectangle(cornerRadius: 22)

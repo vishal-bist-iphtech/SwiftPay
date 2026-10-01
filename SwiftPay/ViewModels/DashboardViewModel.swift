@@ -24,7 +24,7 @@ final class DashboardViewModel: ObservableObject {
     @Published var primaryBankName = "No account"
     @Published var primaryCurrencyCode = "USD"
     @Published var hasPrimaryAccount = false
-    @Published var contacts: [ContactItem] = []
+    @Published var contacts: [Contact] = []
     @Published var transactions: [Transaction] = []
 
 
@@ -33,6 +33,7 @@ final class DashboardViewModel: ObservableObject {
 
         mapAccounts(store.accounts)
         mapTransactions(store.transactions)
+        mapContacts(store.contacts)
 
         store.$accounts
             .receive(on: DispatchQueue.main)
@@ -43,12 +44,23 @@ final class DashboardViewModel: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.mapTransactions($0) }
             .store(in: &cancellables)
+
+        store.$contacts
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.mapContacts($0) }
+            .store(in: &cancellables)
     }
     
     
     // MARK: - Computed
     var hasTransactions: Bool { !transactions.isEmpty }
     var hasContacts: Bool { !contacts.isEmpty }
+
+    /// Single balance formatter, provided by the ViewModel.
+    /// All card balances across the app go through `AccountFormatting.formattedBalance`.
+    var primaryBalanceText: String {
+        AccountFormatting.formattedBalance(primaryBalance, currencyCode: primaryCurrencyCode)
+    }
 
     /// Recent 5 transactions for the dashboard
     var recentTransactions: [Transaction] { Array(transactions.prefix(5)) }
@@ -121,12 +133,7 @@ final class DashboardViewModel: ObservableObject {
             )
         }
 
-        contacts = coredata.fetchContacts(for: user).map { entity in
-            ContactItem(
-                id: entity.id ?? UUID(),
-                name: entity.name ?? ""
-            )
-        }
+        contacts = coredata.fetchContacts(for: user).map(Contact.init(entity:))
     }
 
     // MARK: - Private helpers
@@ -200,11 +207,9 @@ final class DashboardViewModel: ObservableObject {
             )
         }
     }
-}
 
-// MARK: - Models
-
-struct ContactItem: Identifiable {
-    let id: UUID
-    let name: String
+    /// Maps saved contacts (most recent first) for Quick Transfer.
+    private func mapContacts(_ entities: [ContactEntity]) {
+        contacts = entities.map(Contact.init(entity:))
+    }
 }
