@@ -68,7 +68,7 @@ struct AccountCard: View {
                     Text(
                         isBalanceVisible
                         ? card.formattedBalance
-                        : "xxxx"
+                        : AccountFormatting.hiddenBalanceText
                     )
                         .font(.headline)
                         .fontWeight(.semibold)

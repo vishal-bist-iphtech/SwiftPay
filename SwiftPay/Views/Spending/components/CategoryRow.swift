@@ -45,7 +45,7 @@ struct CategoryRow: View {
 
             Spacer()
 
-            Text("- \(category.totalAmount.formatted(.currency(code: "USD")))")
+            Text("- \(AccountFormatting.formattedBalance(category.totalAmount, currencyCode: "USD"))")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(Color("primaryText"))
         }

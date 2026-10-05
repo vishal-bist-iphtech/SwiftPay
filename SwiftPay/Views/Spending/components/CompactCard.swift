@@ -11,7 +11,10 @@ struct CompactCard: View {
 
     /// Core Data values — single source of truth (no hardcodes).
     var balance: Double = 0
+    var currencyCode: String = "USD"
     var maskedNumber: String = "••••• ••••"
+
+    @State private var isBalanceVisible: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 30) {
@@ -20,6 +23,20 @@ struct CompactCard: View {
                 Text("Card balance")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.95))
+
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isBalanceVisible.toggle()
+                    }
+                } label: {
+                    Image(
+                        systemName: isBalanceVisible
+                        ? "eye.fill"
+                        : "eye.slash.fill"
+                    )
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.7))
+                }
 
                 Spacer(minLength: 5)
 
@@ -31,19 +48,30 @@ struct CompactCard: View {
 
             HStack(alignment: .firstTextBaseline, spacing: 5) {
 
-                Text("$")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.85))
-
-                Text(balanceFormatting(balance, currencyCode: false))
+                Text(
+                    isBalanceVisible
+                    ? AccountFormatting.formattedBalance(balance, currencyCode: currencyCode)
+                    : AccountFormatting.hiddenBalanceText
+                )
                     .font(.system(size: 26, weight: .bold))
                     .foregroundStyle(.white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
 
                 Spacer(minLength: 5)
 
-                CardMark()
+                VStack {
+                    CardMark()
+                    
+                    Text("MasterCard")
+                        .font(.caption)
+                        .foregroundStyle(
+                            Color("primaryText")
+                        )
+                }
+                
             }
         }
         .padding(.horizontal, 18)
@@ -116,43 +144,7 @@ struct CompactCard: View {
             }
         }
     }
-            
-    private func balanceFormatting(_ value: Double, currencyCode: Bool = true) -> String {
-        if currencyCode {
-            return value.formatted(
-                .currency(code: "USD")
-                .precision(.fractionLength(2))
-            )
-        }
-        return value.formatted(
-            .number.precision(.fractionLength(2))
-        )
-    }
-    
-    // account number masking (shared — also used for Core Data AccountEntity.maskedNumber)
-    private func maskedAccountNumber(_ accountNumber: String, visibleDigits: Int = 4) -> String {
-        AccountFormatting.maskedAccountNumber(accountNumber, visibleDigits: visibleDigits)
-    }
 }
-
-//private struct CardMark: View {
-//
-//    var diameter: CGFloat = 22
-//
-//    var body: some View {
-//
-//        HStack(spacing: -(diameter * 0.45)) {
-//
-//            Circle()
-//                .fill(Color(red: 0.92, green: 0.12, blue: 0.16))
-//                .frame(width: diameter, height: diameter)
-//
-//            Circle()
-//                .fill(Color(red: 1.0, green: 0.62, blue: 0.15).opacity(0.9))
-//                .frame(width: diameter, height: diameter)
-//        }
-//    }
-//}
 
 
 #Preview {

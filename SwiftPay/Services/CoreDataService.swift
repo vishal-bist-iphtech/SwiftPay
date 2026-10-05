@@ -46,6 +46,7 @@ final class CoreDataService {
         case invalidAmount
         case noAccount
         case insufficientBal
+        case invalidContact
         
         var errorDescription: String? {
             switch self {
@@ -58,6 +59,9 @@ final class CoreDataService {
                 
             case .insufficientBal:
                 return AppStrings.insufficientBal
+
+            case .invalidContact:
+                return AppStrings.noName
                 
             }
         
@@ -144,7 +148,15 @@ final class CoreDataService {
         saveContext()
     }
     
-    // Delete User
+    // Delete User + all owned data (accounts, contacts, transactions cascade
+    // via the model delete rules). Throws if the save fails.
+    func deleteUser(_ user: UserEntity) throws {
+        let target = (try? context.existingObject(with: user.objectID)) as? UserEntity ?? user
+        context.delete(target)
+        if context.hasChanges {
+            try context.save()
+        }
+    }
     
 
     // MARK: ------------------------ Dashboard -------------------------
@@ -191,6 +203,61 @@ final class CoreDataService {
             print("Failed to fetch contacts:", error.localizedDescription)
             return []
         }
+    }
+
+    /// Creates a contact, or returns/touches the existing one with the same
+    /// name (case-insensitive) for this owner. Throws on empty name.
+    @discardableResult
+    func createContact(
+        name: String,
+        phone: String,
+        image: Data? = nil,
+        owner: UserEntity
+    ) throws -> ContactEntity {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else {
+            throw ValidationError.invalidContact
+        }
+        let trimmedPhone = phone.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if let existing = fetchContacts(for: owner).first(where: {
+            ($0.name ?? "").lowercased() == trimmedName.lowercased()
+        }) {
+            if !trimmedPhone.isEmpty {
+                existing.phone = trimmedPhone
+            }
+            if let image {
+                existing.profileImage = image
+            }
+            existing.lastTransactionAt = Date()
+            saveContext()
+            return existing
+        }
+
+        let contact = ContactEntity(context: context)
+        contact.id = UUID()
+        contact.name = trimmedName
+        contact.phone = trimmedPhone
+        contact.profileImage = image
+        contact.createdAt = Date()
+        contact.lastTransactionAt = Date()
+        contact.owner = owner
+
+        saveContext()
+
+        return contact
+    }
+
+    /// Bumps a contact's recency after a transfer so Quick Transfer ordering
+    /// reflects the latest activity. No-op when no contact matches.
+    func touchContact(name: String, for owner: UserEntity) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        guard let match = fetchContacts(for: owner).first(where: {
+            ($0.name ?? "").caseInsensitiveCompare(trimmed) == .orderedSame
+        }) else { return }
+        match.lastTransactionAt = Date()
+        saveContext()
     }
     
     
@@ -433,12 +500,15 @@ final class CoreDataService {
     
 // MARK: -------------------- Money Transfer -----------------------
 
-    // Create transaction if money transfer successfull
+    // Create transaction if money transfer successfull.
+    // Returns the created entity so callers can navigate to its details.
+    @discardableResult
     func MoneyTransferSuccess(
         amount: Double,
         from account: AccountEntity,
-        recipientName: String
-    ) throws {
+        recipientName: String,
+        note: String = ""
+    ) throws -> TransactionEntity {
         
         guard amount > 0 else {
             throw ValidationError.invalidAmount
@@ -461,7 +531,7 @@ final class CoreDataService {
         let last4 = String((account.maskedNumber ?? "").filter(\.isNumber).suffix(4))
         let paidWith = last4.isEmpty ? bank : "\(bank) · \(last4)"
 
-        try addTransaction(
+        let created = try addTransaction(
             title: recipientName,
             category: "Money Transfer",
             amount: amount,
@@ -470,11 +540,15 @@ final class CoreDataService {
             owner: owner,
             account: account,
             status: "completed",
+            note: note,
             paidTo: recipientName,
             paidWith: paidWith
         )
 
+        touchContact(name: recipientName, for: owner)
+
         saveContext()
+        return created
     }
 
 }

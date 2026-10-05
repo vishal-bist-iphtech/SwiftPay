@@ -22,6 +22,7 @@ final class AuthViewModel: ObservableObject {
     @Published var phone = ""
     
     @Published var errorMessage: String?
+    @Published var isDeletingAccount = false
 
     func reset() {
         name = ""
@@ -131,6 +132,29 @@ final class AuthViewModel: ObservableObject {
         session.logout()
         reset()
         router.screen = .landing
+    }
+
+    /// Delete account: removes the user + all owned data from Core Data,
+    /// then clears the session and routes to landing. Returns true on success.
+    @discardableResult
+    func handleDeleteAccount(session: AppSession, router: AppRouter) -> Bool {
+        guard !isDeletingAccount else { return false }
+        guard let user = session.currentUser else {
+            errorMessage = AppStrings.notLoggedIn
+            return false
+        }
+        isDeletingAccount = true
+        defer { isDeletingAccount = false }
+        do {
+            try coredata.deleteUser(user)
+            session.logout()
+            reset()
+            router.screen = .landing
+            return true
+        } catch {
+            errorMessage = "\(AppStrings.deleteAccountFailed)\n\(error.localizedDescription)"
+            return false
+        }
     }
     
     private func isValidEmail(_ email: String) -> Bool {

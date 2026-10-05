@@ -78,14 +78,9 @@ struct TransferSuccessView: View {
                         .font(.system(size: 22, weight: .semibold, design: .rounded))
                         .foregroundStyle(.white)
 
-                    HStack(alignment: .firstTextBaseline, spacing: 2) {
-                        Text("$")
-                            .font(.system(size: 20, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.7))
-                        Text(formattedAmount)
-                            .font(.system(size: 40, weight: .bold, design: .rounded))
-                            .foregroundStyle(.white)
-                    }
+                    Text(formattedAmount)
+                        .font(.system(size: 40, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
 
                     Text(recipientName.map { "to \($0)" } ?? "Payment complete")
                         .font(.subheadline)
@@ -121,9 +116,9 @@ struct TransferSuccessView: View {
 
     private var formattedAmount: String {
         if let value = Double(amount), !amount.isEmpty {
-            return value.formatted(.number.precision(.fractionLength(2)).grouping(.automatic))
+            return AccountFormatting.formattedBalance(value, currencyCode: "USD")
         }
-        return amount.isEmpty ? "0.00" : amount
+        return amount.isEmpty ? AccountFormatting.formattedBalance(0, currencyCode: "USD") : amount
     }
 }
 

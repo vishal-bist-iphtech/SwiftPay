@@ -17,6 +17,8 @@ struct ProfileView: View {
     @State private var pushNotifications = true
     @State private var darkMode = true
     @State private var showLogoutConfirm = false
+    @State private var showDeleteConfirm = false
+    @State private var showDeleteError = false
 
     var body: some View {
 
@@ -134,13 +136,19 @@ struct ProfileView: View {
                             title: "Privacy",
                             subtitle: "Control your data"
                         )
-                        
-                        ProfileRow(
-                            icon: "exclamationmark.triangle.fill",
-                            title: "Delete Account",
-                            subtitle: "Delete your swiftpay account"
-                        )
-                        
+
+                        Button {
+                            showDeleteConfirm = true
+                        } label: {
+                            ProfileRow(
+                                icon: "exclamationmark.triangle.fill",
+                                title: "Delete Account",
+                                subtitle: "Delete your swiftpay account"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(authVM.isDeletingAccount)
+
                     }
 
                     // MARK: Support section
@@ -215,11 +223,33 @@ struct ProfileView: View {
         } message: {
             Text(AppStrings.logoutMessage)
         }
+        .alert("Delete account?", isPresented: $showDeleteConfirm) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                deleteAccount()
+            }
+        } message: {
+            Text(AppStrings.deleteAccountMessage)
+        }
+        .alert("Could not delete account", isPresented: $showDeleteError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(authVM.errorMessage ?? AppStrings.deleteAccountFailed)
+        }
     }
 
     private func logout() {
         // Single VM intent — session clear + form reset + routing live in AuthViewModel.
         authVM.handleLogout(session: session, router: router)
+    }
+
+    private func deleteAccount() {
+        // Session clear + routing live in AuthViewModel; store/VMs observe
+        // the session change and empty themselves. Stays on profile on failure.
+        let ok = authVM.handleDeleteAccount(session: session, router: router)
+        if !ok {
+            showDeleteError = true
+        }
     }
 
     /// Avatar backed by Core Data `profileImage` when present.

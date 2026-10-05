@@ -11,7 +11,9 @@ struct RecentTransfer: View {
     
     let name: String
     let icon: String
-    let image: String
+    /// Saved photo; nil -> person badge.
+    var imageData: Data? = nil
+
     
     var body: some View {
         
@@ -19,7 +21,7 @@ struct RecentTransfer: View {
             
             Group {
                 
-                if name == "More" {
+                if name == "See more" || name == "See less" {
                     Image(systemName: icon)
                         .font(.title)
                         .frame(width: 70, height: 70)
@@ -28,17 +30,24 @@ struct RecentTransfer: View {
 
                         
                     
-                } else {
-                    Image(image)
+                } else if let imageData,
+                          let uiImage = UIImage(data: imageData) {
+                    Image(uiImage: uiImage)
                         .resizable()
                         .scaledToFill()
-                        .font(.largeTitle)
                         .background(
                             Color("surface")
                         )
                         .clipShape(Circle())
                         .frame(width: 70, height: 70)
 
+                } else {
+                    Image(systemName: "person.fill")
+                        .font(.title)
+                        .foregroundStyle(Color("mutedText"))
+                        .frame(width: 70, height: 70)
+                        .background(Color("surface"))
+                        .clipShape(Circle())
                 }
                 
             }
