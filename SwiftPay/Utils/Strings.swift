@@ -43,8 +43,13 @@ enum AppStrings {
     static let aaHeading = "Connect your money"
     static let aaSubheading = "Add an account to see your full financial picture in one place"
     static let selectBank = "Please select your bank"
+    static let invalidBank = "Please choose a supported bank"
     static let last4digits = "Enter the last 4 digits of your card"
+    static let last4Mismatch = "Last 4 digits must match your account number"
     static let selectCardNtw = "Please select your card network"
+    static let invalidCardNtw = "Please choose a supported card network"
+    static let duplicateAccount = "This account is already linked"
+    static let invalidCVVLength = "CVV must be 3–4 digits"
     
     // MARK: Transfer Screen
     static let noAccount = "No account found. Please add an account first"
