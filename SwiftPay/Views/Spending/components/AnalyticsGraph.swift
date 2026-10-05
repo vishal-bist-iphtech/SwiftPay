@@ -43,9 +43,9 @@ struct AnalyticsGraph: View {
     private var regularBar: LinearGradient {
         LinearGradient(
             colors: [
-                Color("background").opacity(0.35),
-                Color.gray.opacity(0.42),
-                Color.white.opacity(0.75)
+                Color("mutedText").opacity(0.25),
+                Color("secondaryText").opacity(0.45),
+                Color("secondaryText").opacity(0.85)
             ],
             startPoint: .top, endPoint: .bottom
         )
@@ -254,7 +254,7 @@ struct AnalyticsGraph: View {
     // the bottom baseline of the graph
     private func baseline(frame: CGRect) -> some View {
         Rectangle()
-            .fill(Color.white.opacity(0.85))
+            .fill(Color("mutedText").opacity(0.4))
             .frame(width: frame.width, height: 3)
             .position(x: frame.midX, y: frame.maxY)
             .allowsHitTesting(false)

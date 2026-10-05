@@ -11,7 +11,6 @@ struct RecentTransfer: View {
     
     let name: String
     let icon: String
-    /// Saved photo; nil -> person badge.
     var imageData: Data? = nil
 
     
@@ -24,9 +23,10 @@ struct RecentTransfer: View {
                 if name == "See more" || name == "See less" {
                     Image(systemName: icon)
                         .font(.title)
+                        .foregroundStyle(Color("primaryText"))
                         .frame(width: 70, height: 70)
+                        .background(Color("surface"))
                         .clipShape(Circle())
-                        .glassEffect().opacity(0.8)
 
                         
                     
@@ -51,9 +51,6 @@ struct RecentTransfer: View {
                 }
                 
             }
-            .foregroundStyle(
-                Color(.white)
-            )
             .overlay {
                 Circle()
                     .stroke(

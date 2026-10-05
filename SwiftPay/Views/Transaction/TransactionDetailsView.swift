@@ -40,7 +40,7 @@ struct TransactionDetailsView: View {
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundStyle(Color("primaryText"))
                                 .frame(width: 36, height: 36)
-                                .background(Color.white.opacity(0.08))
+                                .background(Color("primaryText").opacity(0.08))
                                 .clipShape(Circle())
                         }
 
@@ -128,7 +128,7 @@ struct TransactionDetailsView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 18))
                     .overlay {
                         RoundedRectangle(cornerRadius: 18)
-                            .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                            .stroke(Color("border").opacity(0.4), lineWidth: 1)
                     }
 
                     // MARK: Note + receipt
@@ -153,7 +153,7 @@ struct TransactionDetailsView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 18))
                     .overlay {
                         RoundedRectangle(cornerRadius: 18)
-                            .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                            .stroke(Color("border").opacity(0.4), lineWidth: 1)
                     }
                     
                     Spacer(minLength: 12)
@@ -167,7 +167,7 @@ struct TransactionDetailsView: View {
                                 .font(.system(size: 17, weight: .semibold))
                                 .foregroundStyle(Color(red: 1.0, green: 0.4, blue: 0.35))
                                 .frame(width: 52, height: 52)
-                                .background(Color.white.opacity(0.08))
+                                .background(Color("primaryText").opacity(0.08))
                                 .clipShape(RoundedRectangle(cornerRadius: 16))
                         }
 
@@ -180,14 +180,7 @@ struct TransactionDetailsView: View {
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 52)
                                 .background(
-                                    LinearGradient(
-                                        colors: [
-                                            Color(red: 0.95, green: 0.45, blue: 0.2),
-                                            Color(red: 0.9, green: 0.25, blue: 0.25)
-                                        ],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
+                                    LinearGradient.primaryAction
                                 )
                                 .clipShape(RoundedRectangle(cornerRadius: 16))
                         }
@@ -227,7 +220,7 @@ private struct DetailRow: View {
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(Color(red: 0.95, green: 0.45, blue: 0.2))
                 .frame(width: 36, height: 36)
-                .background(Color.white.opacity(0.06))
+                .background(Color("primaryText").opacity(0.08))
                 .clipShape(RoundedRectangle(cornerRadius: 10))
 
             VStack(alignment: .leading, spacing: 2) {
@@ -251,7 +244,7 @@ private struct DetailRow: View {
 private struct DetailDivider: View {
     var body: some View {
         Divider()
-            .background(Color.white.opacity(0.06))
+            .background(Color("border").opacity(0.4))
             .padding(.leading, 60)
     }
 }

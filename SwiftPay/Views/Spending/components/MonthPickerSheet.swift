@@ -54,7 +54,7 @@ struct MonthPickerSheet: View {
                             .background(
                                 isSelected
                                     ? Color("accentColor")
-                                    : Color.white.opacity(0.08).opacity(isEnabled ? 1 : 0.4),
+                                    : Color("primaryText").opacity(isEnabled ? 0.08 : 0.04),
                                 in: RoundedRectangle(cornerRadius: 14)
                             )
                     }

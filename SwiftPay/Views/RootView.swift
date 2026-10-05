@@ -11,6 +11,7 @@ import CoreData
 struct RootView: View {
     
     @EnvironmentObject var router: AppRouter
+    @EnvironmentObject var theme: ThemeManager
     
     var body: some View {
         
@@ -31,6 +32,6 @@ struct RootView: View {
                 DashboardView()
             }
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(theme.colorScheme)
     }
 }

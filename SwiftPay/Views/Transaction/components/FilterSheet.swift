@@ -68,6 +68,5 @@ struct CategoryFilterSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 }

@@ -144,7 +144,6 @@ struct AddContactSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     @ViewBuilder

@@ -16,7 +16,7 @@ struct LandingScreenView: View {
         ZStack {
             
             LinearGradient(
-                colors: [Color.orange, Color("red").opacity(0.5), Color("background").opacity(0.7), Color("background"),Color("surface")],
+                colors: [Color.orange, Color("appRed").opacity(0.5), Color("background").opacity(0.7), Color("background"),Color("surface")],
                 startPoint: .topTrailing, endPoint: .bottomLeading
             )
              .ignoresSafeArea()

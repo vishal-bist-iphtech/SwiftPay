@@ -122,7 +122,8 @@ struct TransferCard: View {
             .padding(16)
             .frame(maxWidth: 200)
             .frame(height: 160)
-            .glassEffect(.clear, in: .rect(cornerRadius: 22))
+            .background(transferCardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 22))
             .overlay {
                 RoundedRectangle(cornerRadius: 22)
                     .stroke(.white.opacity(0.12), lineWidth: 1)
@@ -214,7 +215,8 @@ struct TransferCard: View {
                 .padding(16)
                 .frame(maxWidth: 200)
                 .frame(height: 160)
-                .glassEffect(.clear, in: .rect(cornerRadius: 22))
+                .background(transferCardBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 22))
                 .overlay {
                     if recipient == nil {
                         RoundedRectangle(cornerRadius: 22)
@@ -229,6 +231,31 @@ struct TransferCard: View {
                 }
             }
             .buttonStyle(.plain)
+        }
+    }
+
+    /// Fixed dark background so white text stays visible in both themes.
+    private var transferCardBackground: some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Color(red: 0.24, green: 0.22, blue: 0.21),
+                    Color(red: 0.13, green: 0.12, blue: 0.11)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            // Soft orange glow carried over from the Transfer screen.
+            Circle()
+                .fill(Color.orange.opacity(0.22))
+                .frame(width: 160, height: 160)
+                .blur(radius: 50)
+                .offset(x: 70, y: -60)
+            Circle()
+                .fill(.black.opacity(0.25))
+                .frame(width: 140, height: 140)
+                .blur(radius: 40)
+                .offset(x: -70, y: 60)
         }
     }
 }

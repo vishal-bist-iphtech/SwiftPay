@@ -13,9 +13,9 @@ struct ProfileView: View {
     @EnvironmentObject var session: AppSession
     @EnvironmentObject var router: AppRouter
     @EnvironmentObject var authVM: AuthViewModel
+    @EnvironmentObject var theme: ThemeManager
+    @EnvironmentObject var notifications: NotificationService
 
-    @State private var pushNotifications = true
-    @State private var darkMode = true
     @State private var showLogoutConfirm = false
     @State private var showDeleteConfirm = false
     @State private var showDeleteError = false
@@ -104,7 +104,7 @@ struct ProfileView: View {
                         ProfileToggleRow(
                             icon: "bell.fill",
                             title: "Push notifications",
-                            isOn: $pushNotifications
+                            isOn: $notifications.isPushEnabled
                         )
                         
                         ProfileRow(
@@ -117,7 +117,7 @@ struct ProfileView: View {
                         ProfileToggleRow(
                             icon: "moon.fill",
                             title: "Dark mode",
-                            isOn: $darkMode
+                            isOn: $theme.isDarkMode
                         )
                     }
 
@@ -155,15 +155,25 @@ struct ProfileView: View {
                     
                     ProfileSection(title: "Support") {
                         
-                        ProfileRow(
-                            icon: "questionmark.circle.fill",
-                            title: "Help center"
-                        )
+                        NavigationLink {
+                            HelpCenterView()
+                        } label: {
+                            ProfileRow(
+                                icon: "questionmark.circle.fill",
+                                title: "Help center"
+                            )
+                        }
+                        .buttonStyle(.plain)
                         
-                        ProfileRow(
-                            icon: "doc.fill",
-                            title: "Terms & privacy"
-                        )
+                        NavigationLink {
+                            TermsPrivacyView()
+                        } label: {
+                            ProfileRow(
+                                icon: "doc.fill",
+                                title: "Terms & privacy"
+                            )
+                        }
+                        .buttonStyle(.plain)
                         
                         ProfileRow(
                             icon: "info.circle.fill",
@@ -194,7 +204,7 @@ struct ProfileView: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
                         .background(
-                            Color("red")
+                            Color("appRed")
                         )
                         .clipShape(
                             RoundedRectangle(cornerRadius: 18)
@@ -214,7 +224,6 @@ struct ProfileView: View {
                 .padding(.horizontal, 20)
             }
         }
-        .preferredColorScheme(.dark)
         .alert("Log out?", isPresented: $showLogoutConfirm) {
             Button("Cancel", role: .cancel) { }
             Button("Log out", role: .destructive) {
@@ -286,5 +295,7 @@ struct ProfileView: View {
     .environmentObject(AuthViewModel())
     .environmentObject(BankDetailsViewModel(store: store))
     .environmentObject(UserDetailsViewModel(session: session))
+    .environmentObject(ThemeManager())
+    .environmentObject(NotificationService())
     .environment(\.managedObjectContext, context)
 }

@@ -21,7 +21,7 @@ struct Analytics: View {
             VStack(spacing: 12) {
 
                 Capsule()
-                    .fill(Color.white.opacity(0.85))
+                    .fill(Color("mutedText").opacity(0.4))
                     .frame(width: 40, height: 5)
                     .padding(.top, 8)
 
@@ -77,7 +77,7 @@ struct Analytics: View {
                         .background(
                             viewModel.priceFilter == nil
                                 ? Color.clear
-                                : Color.white.opacity(0.08),
+                                : Color("primaryText").opacity(0.08),
                             in: RoundedRectangle(cornerRadius: 14)
                         )
                     }

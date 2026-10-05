@@ -28,14 +28,7 @@ struct SaveButton: View {
             .frame(maxWidth: .infinity)
             .frame(height: 56)
             .background(
-                LinearGradient(
-                    colors: [
-                        Color(red: 1.0, green: 0.56, blue: 0.25),
-                        Color(red: 0.94, green: 0.27, blue: 0.2)
-                    ],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
+                LinearGradient.primaryAction
                 .opacity(isEnabled && !isSaving ? 1 : 0.5)
             )
             .clipShape(RoundedRectangle(cornerRadius: 18))

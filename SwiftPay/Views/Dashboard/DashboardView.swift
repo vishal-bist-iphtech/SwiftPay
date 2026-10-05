@@ -15,6 +15,7 @@ struct DashboardView: View {
     @EnvironmentObject var uservm: UserDetailsViewModel
     @EnvironmentObject var transferVM: TransferViewModel
     @EnvironmentObject var transactionVM: TransactionViewModel
+    @EnvironmentObject var notifications: NotificationService
 
     @State private var showTransfer: Bool = false
     @State private var showingAddContact: Bool = false
@@ -32,7 +33,7 @@ struct DashboardView: View {
             ZStack{
                     
                 LinearGradient(
-                    colors: [Color.orange, Color("red").opacity(0.5), Color("background").opacity(0.7), Color("background"),Color("surface")],
+                    colors: [Color.orange, Color("appRed").opacity(0.5), Color("background").opacity(0.7), Color("background"),Color("surface")],
                     startPoint: .topTrailing, endPoint: .bottomLeading
                 )
                  .ignoresSafeArea()
@@ -77,17 +78,29 @@ struct DashboardView: View {
                             Spacer()
                             
                             Button {
-                                
+                                notifications.openSheet()
                             } label: {
-                                Image(systemName: "bell.fill")
-                                    .font(.title2)
-                                    .foregroundStyle(
-                                        Color("primaryText")
-                                    )
-                                    .frame(width: 40, height: 40)
-                                    .padding(3)
-                                    .glassEffect(in: .circle)
-                                    .clipShape(Circle())
+                                ZStack(alignment: .topTrailing) {
+                                    Image(systemName: "bell.fill")
+                                        .font(.title2)
+                                        .foregroundStyle(
+                                            Color("primaryText")
+                                        )
+                                        .frame(width: 40, height: 40)
+                                        .padding(3)
+                                        .glassEffect(in: .circle)
+                                        .clipShape(Circle())
+
+                                    if notifications.unreadCount > 0 {
+                                        Text("\(min(notifications.unreadCount, 9))")
+                                            .font(.system(size: 10, weight: .bold))
+                                            .foregroundStyle(.white)
+                                            .frame(minWidth: 18, minHeight: 18)
+                                            .background(Color(red: 0.95, green: 0.3, blue: 0.2))
+                                            .clipShape(Capsule())
+                                            .offset(x: 6, y: -4)
+                                    }
+                                }
                             }
                         }
                         
@@ -311,10 +324,20 @@ struct DashboardView: View {
                     .animation(.easeInOut(duration: 0.2), value: viewModel.hasTransactions)
                 }
                 .padding(.horizontal, 20)
+
+                // In-app debit banner (2s after transfer).
+                VStack {
+                    InAppNotificationBanner()
+                    Spacer()
+                }
             }
-            .preferredColorScheme(.dark)
             .onAppear {
                 viewModel.refresh()
+            }
+            .sheet(isPresented: $notifications.showingSheet) {
+                NotificationSheet()
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
             }
             .navigationDestination(isPresented: $showTransfer) {
                 TransferView()
@@ -352,6 +375,7 @@ struct DashboardView: View {
         .environmentObject(TransactionViewModel(session: session, store: store))
         .environmentObject(BankDetailsViewModel(store: store))
         .environmentObject(UserDetailsViewModel(session: session))
+        .environmentObject(NotificationService())
         .environment(
             \.managedObjectContext,
             context

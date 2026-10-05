@@ -68,7 +68,8 @@ struct UserDetailsView: View {
                             keyboard: .default,
                             textContent: .name,
                             isEditing: viewModel.isEditing,
-                            focused: $focusedField
+                            focused: $focusedField,
+                            error: viewModel.isEditing ? viewModel.nameError : nil
                         )
 
                         Divider()
@@ -83,7 +84,8 @@ struct UserDetailsView: View {
                             keyboard: .emailAddress,
                             textContent: .emailAddress,
                             isEditing: viewModel.isEditing,
-                            focused: $focusedField
+                            focused: $focusedField,
+                            error: viewModel.isEditing ? viewModel.emailError : nil
                         )
 
                         Divider()
@@ -127,6 +129,13 @@ struct UserDetailsView: View {
 
                     // MARK: Save / Cancel
                     if viewModel.isEditing {
+                        if let photoError = viewModel.photoError {
+                            Text(photoError)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(Color("accentColor"))
+                                .padding(.top, 10)
+                        }
+
                         Button {
                             focusedField = nil
                             _ = viewModel.save()
@@ -143,18 +152,12 @@ struct UserDetailsView: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 56)
                             .background(
-                                LinearGradient(
-                                    colors: [
-                                        Color(red: 1.0, green: 0.56, blue: 0.25),
-                                        Color(red: 0.94, green: 0.27, blue: 0.2)
-                                    ],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
+                                LinearGradient.primaryAction
+                                .opacity(viewModel.isFormValid && !viewModel.isSaving ? 1 : 0.5)
                             )
                             .clipShape(RoundedRectangle(cornerRadius: 18))
                         }
-                        .disabled(viewModel.isSaving)
+                        .disabled(!viewModel.isFormValid || viewModel.isSaving)
                         .padding(.top, 22)
 
                         Button {
@@ -192,8 +195,13 @@ struct UserDetailsView: View {
                     Text(viewModel.isEditing ? "Save" : "Edit")
                         .font(.subheadline)
                         .fontWeight(.medium)
-                        .foregroundStyle(Color("accentColor"))
+                        .foregroundStyle(
+                            viewModel.isEditing && !viewModel.isFormValid
+                            ? Color("mutedText")
+                            : Color("accentColor")
+                        )
                 }
+                .disabled(viewModel.isEditing && (!viewModel.isFormValid || viewModel.isSaving))
             }
             .sharedBackgroundVisibility(.hidden)
         }

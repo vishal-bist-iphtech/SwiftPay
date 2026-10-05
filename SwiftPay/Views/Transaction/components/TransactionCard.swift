@@ -59,7 +59,7 @@ struct TransactionCard: View {
 
                     if index < section.transactions.count - 1 {
                         Divider()
-                            .background(Color.white.opacity(0.06))
+                            .background(Color("border").opacity(0.4))
                             .padding(.leading, 62)
                     }
                 }
@@ -69,7 +69,7 @@ struct TransactionCard: View {
             .clipShape(RoundedRectangle(cornerRadius: 18))
             .overlay {
                 RoundedRectangle(cornerRadius: 18)
-                    .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                    .stroke(Color("border").opacity(0.4), lineWidth: 1)
             }
         }
     }

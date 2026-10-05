@@ -25,6 +25,7 @@ struct EditableRow: View {
     let textContent: UITextContentType
     let isEditing: Bool
     let focused: FocusState<UserDetailsField?>.Binding
+    var error: String? = nil
 
     init(
         label: String,
@@ -34,7 +35,8 @@ struct EditableRow: View {
         keyboard: UIKeyboardType,
         textContent: UITextContentType,
         isEditing: Bool,
-        focused: FocusState<UserDetailsField?>.Binding
+        focused: FocusState<UserDetailsField?>.Binding,
+        error: String? = nil
     ) {
         self.label = label
         self.placeholder = placeholder
@@ -44,6 +46,7 @@ struct EditableRow: View {
         self.textContent = textContent
         self.isEditing = isEditing
         self.focused = focused
+        self.error = error
     }
 
     var body: some View {
@@ -68,9 +71,14 @@ struct EditableRow: View {
                 .overlay {
                     RoundedRectangle(cornerRadius: 14)
                         .stroke(
-                            focused.wrappedValue == field ? Color("accentColor").opacity(0.6) : Color("border").opacity(0.3),
+                            error != nil ? Color("accentColor").opacity(0.7) : (focused.wrappedValue == field ? Color("accentColor").opacity(0.6) : Color("border").opacity(0.3)),
                             lineWidth: 1
                         )
+                }
+                if let error {
+                    Text(error)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Color("accentColor"))
                 }
             } else {
                 Text(displayText)

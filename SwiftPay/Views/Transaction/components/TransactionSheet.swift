@@ -13,6 +13,8 @@ struct TransactionSheet: View {
 
     @ObservedObject var viewModel: TransactionViewModel
     let transaction: Transaction?
+    
+    var onDelete: ((Transaction) -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
 
@@ -157,18 +159,6 @@ struct TransactionSheet: View {
                             .font(.footnote)
                     }
                 }
-
-                if isEditing, let tx = transaction {
-                    Section {
-                        Button(role: .destructive) {
-                            viewModel.deleteTransaction(tx)
-                            dismiss()
-                        } label: {
-                            Text("Delete transaction")
-                                .frame(maxWidth: .infinity, alignment: .center)
-                        }
-                    }
-                }
             }
             .navigationTitle(isEditing ? "Edit transaction" : "Add transaction")
             .navigationBarTitleDisplayMode(.inline)
@@ -196,7 +186,6 @@ struct TransactionSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private func save() {

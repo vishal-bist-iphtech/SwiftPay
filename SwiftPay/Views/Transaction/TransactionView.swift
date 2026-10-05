@@ -41,6 +41,9 @@ struct TransactionView: View {
                             Text(viewModel.monthlySpendingText)
                                 .font(.system(size: 32, weight: .bold, design: .rounded))
                                 .foregroundStyle(Color("primaryText"))
+                            Text(viewModel.primaryAccountLabel)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(Color("mutedText"))
                         }
 
                         HStack(spacing: 10) {
@@ -107,7 +110,7 @@ struct TransactionView: View {
                             }
                             .padding(.horizontal, 12)
                             .padding(.vertical, 7)
-                            .background(Color.white.opacity(0.08))
+                            .background(Color("primaryText").opacity(0.08))
                             .clipShape(Capsule())
                         }
                     }

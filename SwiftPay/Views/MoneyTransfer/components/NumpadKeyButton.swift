@@ -27,7 +27,11 @@ struct NumpadKeyButton: View {
                 // only numeric value (0 -> 9) have tile background
                 if hasTileBackground {
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.white.opacity(0.08))
+                        .fill(Color("surface"))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color("border").opacity(0.4), lineWidth: 1)
+                        }
                 }
 
                 switch key {
@@ -35,17 +39,17 @@ struct NumpadKeyButton: View {
                 case .digit(let value):
                     Text(value)
                         .font(.system(size: 30, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color("primaryText"))
                     
                 case .dot:
                     Text(".")
                         .font(.system(size: 30, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color("primaryText"))
                     
                 case .delete:
                     Image(systemName: "delete.left")
                         .font(.system(size: 26, weight: .medium))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color("primaryText"))
                 }
             }
             .frame(maxWidth: .infinity)

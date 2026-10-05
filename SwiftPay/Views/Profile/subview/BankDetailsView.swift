@@ -76,14 +76,7 @@ struct BankDetailsView: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: 54)
                         .background(
-                            LinearGradient(
-                                colors: [
-                                    Color(red: 1.0, green: 0.56, blue: 0.25),
-                                    Color(red: 0.94, green: 0.27, blue: 0.2)
-                                ],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
+                            LinearGradient.primaryAction
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 18))
                     }

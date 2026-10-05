@@ -62,7 +62,7 @@ struct AccountCard: View {
                             )
                             .font(.subheadline)
                             .fontWeight(.medium)
-                            .foregroundStyle(.white.opacity(0.7))
+                            .foregroundStyle(Color("mutedText"))
                         }
                     }
                     Text(
@@ -72,7 +72,7 @@ struct AccountCard: View {
                     )
                         .font(.headline)
                         .fontWeight(.semibold)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color("primaryText"))
                         .minimumScaleFactor(0.8)
                         .monospacedDigit()
                         .contentTransition(.numericText())

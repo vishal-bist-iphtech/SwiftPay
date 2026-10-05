@@ -62,7 +62,7 @@ struct SpendingView: View {
                     HStack(spacing: 6) {
                         ForEach(0..<cardCount, id: \.self) { index in
                             Circle()
-                                .fill(Color.white.opacity(index == selectedCardIndex ? 0.9 : 0.25))
+                                .fill(Color("mutedText").opacity(index == selectedCardIndex ? 0.9 : 0.3))
                                 .frame(width: 6, height: 6)
                                 .animation(.easeInOut(duration: 0.2), value: selectedCardIndex)
                         }
@@ -73,30 +73,36 @@ struct SpendingView: View {
 
                     // MARK: Total spending + month picker
 
-                    HStack(alignment: .bottom, spacing: 4) {
-                        Text(viewModel.formattedTotalSpent)
-                            .font(.system(size: 34, weight: .semibold, design: .rounded))
-                            .foregroundStyle(Color("primaryText"))
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(alignment: .bottom, spacing: 4) {
+                            Text(viewModel.formattedTotalSpent)
+                                .font(.system(size: 34, weight: .semibold, design: .rounded))
+                                .foregroundStyle(Color("primaryText"))
 
-                        Spacer()
+                            Spacer()
 
-                        Button {
-                            showingMonthPicker = true
-                        } label: {
-                            HStack(spacing: 4) {
-                                Text(viewModel.monthLabel)
-                                    .font(.system(size: 14, weight: .medium))
-                                Image(systemName: "chevron.down")
-                                    .font(.system(size: 12, weight: .semibold))
+                            Button {
+                                showingMonthPicker = true
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Text(viewModel.monthLabel)
+                                        .font(.system(size: 14, weight: .medium))
+                                    Image(systemName: "chevron.down")
+                                        .font(.system(size: 12, weight: .semibold))
+                                }
+                                .foregroundStyle(Color("primaryText"))
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 10)
+                                .background(
+                                    Color("primaryText").opacity(0.08),
+                                    in: RoundedRectangle(cornerRadius: 20)
+                                )
                             }
-                            .foregroundStyle(Color("primaryText"))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 10)
-                            .background(
-                                Color.white.opacity(0.08),
-                                in: RoundedRectangle(cornerRadius: 20)
-                            )
                         }
+
+                        Text(viewModel.primaryAccountLabel)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(Color("mutedText"))
                     }
                     .padding(.horizontal, 20)
 

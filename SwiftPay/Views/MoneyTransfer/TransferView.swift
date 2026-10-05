@@ -146,10 +146,11 @@ struct TransferView: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: 30)
                         .padding()
-                        .background(.white)
+                        .background(Color("primaryText"))
                         .clipShape(
                             RoundedRectangle(cornerRadius: 22)
                         )
+                        .opacity((!viewModel.isAmountValid || viewModel.isProcessing) ? 0.5 : 1)
                     }
                     .disabled(!viewModel.isAmountValid || viewModel.isProcessing)
                     .padding(.top, 15)
@@ -171,6 +172,11 @@ struct TransferView: View {
             ) {
                 viewModel.finishSuccess()
             }
+        }
+        .sheet(isPresented: $viewModel.showPinEntry) {
+            TransactionPinView()
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $viewModel.showingAddContact) {
             AddContactSheet(onAddContact: { name, phone, image in
