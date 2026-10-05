@@ -503,7 +503,7 @@ final class CoreDataService {
     // Create transaction if money transfer successfull.
     // Returns the created entity so callers can navigate to its details.
     @discardableResult
-    func MoneyTransferSuccess(
+    func moneyTransferSuccess(
         amount: Double,
         from account: AccountEntity,
         recipientName: String,

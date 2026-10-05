@@ -55,7 +55,7 @@ final class AccountStore: ObservableObject {
               account.owner?.id == user.id else {
             throw CoreDataService.ValidationError.noAccount
         }
-        let created = try CoreDataService(context: context).MoneyTransferSuccess(
+        let created = try CoreDataService(context: context).moneyTransferSuccess(
             amount: amount,
             from: account,
             recipientName: recipientName,
