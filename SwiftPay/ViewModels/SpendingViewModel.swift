@@ -76,6 +76,12 @@ final class SpendingViewModel: ObservableObject {
     /// Account cards for the carousel.
     @Published var accountCards: [SpendingAccountCard] = []
 
+    /// Primary account context — spendings are scoped to this account.
+    @Published private(set) var primaryAccountId: UUID?
+    @Published private(set) var primaryBankName = "No account"
+    @Published private(set) var primaryCurrencyCode = "USD"
+    @Published private(set) var hasPrimaryAccount = false
+
     private let store: AccountStore
     private var cancellables = Set<AnyCancellable>()
 
@@ -97,7 +103,13 @@ final class SpendingViewModel: ObservableObject {
 
     /// Monthly spending total always goes through `AccountFormatting.formattedBalance`.
     var formattedTotalSpent: String {
-        AccountFormatting.formattedBalance(totalSpent, currencyCode: "USD")
+        AccountFormatting.formattedBalance(totalSpent, currencyCode: primaryCurrencyCode)
+    }
+
+    /// Subtitle shown under the total, e.g. "Primary · JPMorgan Chase".
+    var primaryAccountLabel: String {
+        guard hasPrimaryAccount else { return "No account" }
+        return "Primary · \(primaryBankName)"
     }
 
     /// Highest transaction of the month.
@@ -162,7 +174,12 @@ final class SpendingViewModel: ObservableObject {
 
         store.$accounts
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] in self?.mapAccounts($0) }
+            .sink { [weak self] accounts in
+                guard let self else { return }
+                self.mapAccounts(accounts)
+                // Primary may have changed — re-scope spendings.
+                self.rebuild(from: self.store.transactions)
+            }
             .store(in: &cancellables)
 
         // Rebuild whenever transactions or the selected month/year change.
@@ -212,29 +229,85 @@ final class SpendingViewModel: ObservableObject {
                 maskedNumber: masked
             )
         }
+
+        // Primary drives all spending scopes.
+        if let primary = accounts.first(where: { $0.isPrimary }) ?? accounts.first {
+            primaryAccountId = primary.id
+            primaryBankName = primary.bankName ?? "Bank account"
+            primaryCurrencyCode = primary.currencyCode ?? "USD"
+            hasPrimaryAccount = true
+        } else {
+            primaryAccountId = nil
+            primaryBankName = "No account"
+            primaryCurrencyCode = "USD"
+            hasPrimaryAccount = false
+        }
     }
 
     /// Rebuilds total, daily groups and categories from expense transactions
-    /// of the selected month/year.
+    /// of the selected month/year, scoped to the primary bank account.
     private func rebuild(from entities: [TransactionEntity]) {
         let cal = Calendar.current
 
-        // Expenses only, matching the selected month + year.
+        // No primary -> nothing to scope to.
+        guard hasPrimaryAccount, let primaryId = primaryAccountId else {
+            
+            if store.accounts.isEmpty {
+                totalSpent = 0
+                days = []
+                categories = []
+                return
+            }
+            // Fall through with nil primary (should not happen) — show all.
+            rebuildUnscoped(from: entities, cal: cal)
+            return
+        }
+
+        // Expenses only, matching the selected month + year + primary account.
         let monthExpenses: [(date: Date, amount: Double, category: String)] = entities.compactMap { entity in
             guard !entity.isIncome else { return nil }
+            guard Self.belongsToPrimary(entity, primaryId: primaryId) else { return nil }
             guard let date = entity.date else { return nil }
             let comps = cal.dateComponents([.year, .month], from: date)
             guard comps.year == selectedYear, comps.month == selectedMonth else { return nil }
-            let amount: Double = {
-                if let n = entity.amount { return n.doubleValue }
-                if let n = entity.amount { return n.doubleValue }
-                return 0
-            }()
+            let amount: Double = entity.amount?.doubleValue ?? 0
             guard amount > 0 else { return nil }
             let rawCategory = (entity.category ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             let category = rawCategory.isEmpty ? "Others" : rawCategory
             return (date: date, amount: amount, category: category)
         }
+
+        buildGroups(from: monthExpenses, cal: cal)
+    }
+
+    /// Returns true when the transaction belongs to the primary account.
+    /// - Linked transfers have `account` set — strict match.
+    /// - Legacy/manual entries have `account == nil` — attributed to primary
+    ///   so existing history doesn't disappear after this scoping change.
+    private static func belongsToPrimary(_ entity: TransactionEntity, primaryId: UUID) -> Bool {
+        if let linked = entity.account, let linkedId = linked.id {
+            return linkedId == primaryId
+        }
+        return true
+    }
+
+    /// Fallback used only when accounts exist but primary resolution failed.
+    private func rebuildUnscoped(from entities: [TransactionEntity], cal: Calendar) {
+        let monthExpenses: [(date: Date, amount: Double, category: String)] = entities.compactMap { entity in
+            guard !entity.isIncome else { return nil }
+            guard let date = entity.date else { return nil }
+            let comps = cal.dateComponents([.year, .month], from: date)
+            guard comps.year == selectedYear, comps.month == selectedMonth else { return nil }
+            let amount: Double = entity.amount?.doubleValue ?? 0
+            guard amount > 0 else { return nil }
+            let rawCategory = (entity.category ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            let category = rawCategory.isEmpty ? "Others" : rawCategory
+            return (date: date, amount: amount, category: category)
+        }
+        buildGroups(from: monthExpenses, cal: cal)
+    }
+
+    private func buildGroups(from monthExpenses: [(date: Date, amount: Double, category: String)], cal: Calendar) {
 
         // MARK: Total monthly spending
         totalSpent = monthExpenses.reduce(0) { $0 + $1.amount }

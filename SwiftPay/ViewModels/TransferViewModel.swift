@@ -21,6 +21,12 @@ final class TransferViewModel: ObservableObject {
     @Published var showSuccess = false
     @Published var errorMessage: String?
 
+    // MARK: - Transaction PIN (UPI-style)
+
+    /// Presented as a sheet from TransferView on Send tap.
+    @Published var showPinEntry = false
+    @Published var pinErrorMessage: String?
+
     /// Max note length
     let noteCap = 140
 
@@ -54,12 +60,14 @@ final class TransferViewModel: ObservableObject {
 
         private let store: AccountStore
     private let session: AppSession
+    private var notifications: NotificationService?
     private var cancellables = Set<AnyCancellable>()
     private let coredata = CoreDataService.shared
 
-    init(store: AccountStore, session: AppSession) {
+    init(store: AccountStore, session: AppSession, notifications: NotificationService? = nil) {
         self.store = store
         self.session = session
+        self.notifications = notifications
 
         mapPrimary(store.accounts)
         mapContacts(store.contacts)
@@ -184,22 +192,82 @@ final class TransferViewModel: ObservableObject {
 
     // MARK: - Send
 
+    /// Entry point for the Send button. Validates transfer details and,
+    /// on success, presents the UPI-style PIN sheet.
     func send() {
+        requestPin()
+    }
+
+    /// Validates recipient + amount + balance and presents the PIN screen.
+    func requestPin() {
         guard !isProcessing else { return }
         errorMessage = nil
+        pinErrorMessage = nil
 
-        guard let recipient = selectedRecipient else {
+        guard selectedRecipient != nil else {
             errorMessage = AppStrings.noRecipient
             return
         }
 
-        guard let account = store.accounts.first(where: { $0.isPrimary }) ?? store.accounts.first
-        else {return}
+        guard store.accounts.first(where: { $0.isPrimary }) ?? store.accounts.first != nil else {
+            errorMessage = AppStrings.noAccount
+            return
+        }
 
-        guard isAmountValid,
-              let amount = Double(transferAmount) else { return }
+        guard isAmountValid else { return }
+
+        guard !exceedsBalance else {
+            errorMessage = AppStrings.insufficientBal
+            return
+        }
+
+        showPinEntry = true
+    }
+
+    /// Called by TransactionPinView when 4 digits are entered.
+    /// Demo mode: any 4-digit numeric PIN is accepted.
+    func submitPin(_ pin: String) {
+        guard !isProcessing else { return }
+        let digits = pin.filter(\.isNumber)
+        guard digits.count == 4, digits.count == pin.count else {
+            pinErrorMessage = "Enter a valid 4-digit PIN"
+            return
+        }
+        pinErrorMessage = nil
+        performTransfer()
+    }
+
+    func cancelPin() {
+        guard !isProcessing else { return }
+        showPinEntry = false
+        pinErrorMessage = nil
+    }
+
+    func clearPinError() {
+        pinErrorMessage = nil
+    }
+
+    /// Commits the transfer after PIN confirmation.
+    private func performTransfer() {
+        guard let recipient = selectedRecipient else {
+            showPinEntry = false
+            errorMessage = AppStrings.noRecipient
+            return
+        }
+
+        guard let account = store.accounts.first(where: { $0.isPrimary }) ?? store.accounts.first else {
+            showPinEntry = false
+            errorMessage = AppStrings.noAccount
+            return
+        }
+
+        guard isAmountValid, let amount = Double(transferAmount) else {
+            showPinEntry = false
+            return
+        }
 
         guard amount <= balance else {
+            showPinEntry = false
             errorMessage = AppStrings.insufficientBal
             return
         }
@@ -223,9 +291,23 @@ final class TransferViewModel: ObservableObject {
                 self.transferAmount = ""
                 self.noteText = ""
                 self.isProcessing = false
+                self.showPinEntry = false
                 self.showSuccess = true
+                // Debit notification 2s after the transaction commits:
+                // amount debited + remaining balance only.
+                let remaining = (account.balance as NSDecimalNumber?)?.doubleValue ?? max(self.balance - amount, 0)
+                let bankName = account.bankName ?? self.bankName
+                self.notifications?.scheduleDebitNotification(
+                    amount: amount,
+                    remainingBalance: remaining,
+                    currencyCode: self.currencyCode,
+                    bankName: bankName,
+                    recipientName: recipient.name,
+                    delay: 2.0
+                )
             } catch {
                 self.isProcessing = false
+                self.showPinEntry = false
                 self.errorMessage = error.localizedDescription
             }
         }
@@ -261,11 +343,7 @@ final class TransferViewModel: ObservableObject {
 
     /// Maps the created entity to the UI model (same fields as `TransactionViewModel.map`).
     private static func map(_ entity: TransactionEntity) -> Transaction {
-        let amount: Double = {
-            if let n = entity.amount as? NSDecimalNumber { return n.doubleValue }
-            if let n = entity.amount as? NSNumber { return n.doubleValue }
-            return 0
-        }()
+        let amount: Double = entity.amount?.doubleValue ?? 0
         return Transaction(
             id: entity.id ?? UUID(),
             title: entity.title ?? "",
@@ -286,7 +364,9 @@ final class TransferViewModel: ObservableObject {
         noteText = ""
         sentAmount = ""
         errorMessage = nil
+        pinErrorMessage = nil
         isProcessing = false
+        showPinEntry = false
         showSuccess = false
         showingAddContact = false
         completedTransaction = nil

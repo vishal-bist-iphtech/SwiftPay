@@ -28,6 +28,16 @@ final class TransactionViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var isSaving: Bool = false
 
+    /// Primary account scoping — transactions list shows primary bank only.
+    @Published private(set) var primaryAccountId: UUID?
+    @Published private(set) var primaryBankName = "No account"
+    @Published private(set) var hasPrimaryAccount = false
+
+    var primaryAccountLabel: String {
+        guard hasPrimaryAccount else { return "No account" }
+        return "Primary · \(primaryBankName)"
+    }
+
 
     private let coredata = CoreDataService.shared
     private let session: AppSession
@@ -41,9 +51,26 @@ final class TransactionViewModel: ObservableObject {
         self.session = session
         self.store = store
 
+        updatePrimaryFromStore(store?.accounts ?? [])
         load()
 
         session.$currentUser
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.load() }
+            .store(in: &cancellables)
+
+        // Re-scope whenever accounts change (primary switch / add / delete).
+        store?.$accounts
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] accounts in
+                guard let self else { return }
+                self.updatePrimaryFromStore(accounts)
+                self.load()
+            }
+            .store(in: &cancellables)
+
+        // Live updates when new transfers land.
+        store?.$transactions
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.load() }
             .store(in: &cancellables)
@@ -123,7 +150,7 @@ final class TransactionViewModel: ObservableObject {
 
     // MARK: - Fetch
 
-    /// Re-fetches from Core Data
+    /// Re-fetches from Core Data, scoped to the primary bank account.
     func load() {
         errorMessage = nil
         guard let user = currentUser() else {
@@ -131,9 +158,26 @@ final class TransactionViewModel: ObservableObject {
             entities = []
             return
         }
+        // Resolve primary when store isn't wired (e.g. previews / legacy init).
+        if primaryAccountId == nil {
+            updatePrimaryFromStore(store?.accounts ?? [])
+            if primaryAccountId == nil,
+               let primary = coredata.fetchPrimaryAccount(for: user) {
+                primaryAccountId = primary.id
+                primaryBankName = primary.bankName ?? "Bank account"
+                hasPrimaryAccount = true
+            }
+        }
         let fetched = coredata.fetchTransactions(for: user)
-        entities = fetched
-        transactions = fetched.map { Self.map($0) }
+        // No primary account -> empty state (don't attribute spend to nothing).
+        guard hasPrimaryAccount, let primaryId = primaryAccountId else {
+            entities = []
+            transactions = []
+            return
+        }
+        let scoped = fetched.filter { Self.belongsToPrimary($0, primaryId: primaryId) }
+        entities = scoped
+        transactions = scoped.map { Self.map($0) }
     }
 
     func refresh() {
@@ -339,17 +383,38 @@ final class TransactionViewModel: ObservableObject {
         return coredata.fetchUser(id: id)
     }
 
+    private func updatePrimaryFromStore(_ accounts: [AccountEntity]) {
+        if let primary = accounts.first(where: { $0.isPrimary }) ?? accounts.first {
+            primaryAccountId = primary.id
+            primaryBankName = primary.bankName ?? "Bank account"
+            hasPrimaryAccount = true
+        } else if store == nil {
+            // No store wired (preview) — leave scoping open.
+            // load() will fall back to Core Data primary lookup.
+            return
+        } else {
+            primaryAccountId = nil
+            primaryBankName = "No account"
+            hasPrimaryAccount = false
+        }
+    }
+
+    private static func belongsToPrimary(_ entity: TransactionEntity, primaryId: UUID) -> Bool {
+        if let linked = entity.account, let linkedId = linked.id {
+            return linkedId == primaryId
+        }
+        // Legacy/manual entries carry no account link — attribute to primary
+        // so existing history doesn't disappear after scoping.
+        return true
+    }
+
     // MARK: - Mapping (Core Data -> UI)
 
     static func map(_ entity: TransactionEntity) -> Transaction {
         let title = entity.title ?? ""
         let category = (entity.category?.isEmpty == false) ? entity.category! : "Others"
         let isIncome = entity.isIncome
-        let amount: Double = {
-            if let n = entity.amount { return n.doubleValue }
-            if let n = entity.amount { return n.doubleValue }
-            return 0
-        }()
+        let amount: Double = entity.amount?.doubleValue ?? 0
         return Transaction(
             id: entity.id ?? UUID(),
             title: title,

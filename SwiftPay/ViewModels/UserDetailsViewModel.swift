@@ -101,13 +101,39 @@ final class UserDetailsViewModel: ObservableObject {
     }
 
     // MARK: - Validation
-    private func validationError() -> String? {
-        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmedName.isEmpty { return AppStrings.noName }
-        if !isValidName(trimmedName) { return AppStrings.inValidName }
-        if !isValidEmail(email.trimmingCharacters(in: .whitespacesAndNewlines)) {
-            return AppStrings.inValidEmail
+
+    /// Live per-field errors used for inline hints + Save gating.
+    var nameError: String? {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return AppStrings.noName }
+        if !isValidName(trimmed) { return AppStrings.inValidName }
+        return nil
+    }
+
+    var emailError: String? {
+        let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return AppStrings.inValidEmail }
+        if !isValidEmail(trimmed) { return AppStrings.inValidEmail }
+        return nil
+    }
+
+    var photoError: String? {
+        guard let data = profileImageData else { return nil }
+        // 5 MB cap to keep Core Data light.
+        if data.count > 5 * 1024 * 1024 {
+            return "Profile photo must be under 5 MB"
         }
+        return nil
+    }
+
+    var isFormValid: Bool {
+        nameError == nil && emailError == nil && photoError == nil && hasUser
+    }
+
+    private func validationError() -> String? {
+        if let err = nameError { return err }
+        if let err = emailError { return err }
+        if let err = photoError { return err }
         // Phone is identity and read-only — never validated/edited here.
         return nil
     }
